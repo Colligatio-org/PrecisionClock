@@ -1,5 +1,5 @@
 // precision_clock.cpp
-// Precision Clock v2.8.0-rc1
+// Precision Clock v1.0.0
 // 精密时钟 / Precision Clock
 // Colligatio open-source project
 // Compile:
@@ -44,18 +44,23 @@ using namespace Gdiplus;
 
 #define TRAY_ID 1
 
+#define HOTKEY_ID_TOGGLE 100
+#define HOTKEY_ID_MODE   101
+#define HOTKEY_ID_RESYNC 102
+
 #define IDM_TOGGLE       1001
 #define IDM_RESYNC       1002
 #define IDM_DISCLAIMER   1003
 #define IDM_EXIT         1004
 #define IDM_ABOUT        1005
+#define IDM_HOTKEY_INFO  1006
 #define IDM_COUNTRY_BASE 1100
 #define IDM_LANG_BASE    1200
 
 #define MAX_NTP_SOURCES 4
 #define CROSS_VALIDATE_MAX_DIFF_MS 50ULL
 
-// 红绿灯
+// 红绿灯（逻辑坐标）
 #define BTN_R 5.0f
 #define BTN_RED_X    255.0f
 #define BTN_YELLOW_X 270.0f
@@ -98,6 +103,7 @@ typedef struct {
     const wchar_t *menuSettings;
     const wchar_t *menuCountry;
     const wchar_t *menuLanguage;
+    const wchar_t *menuHotkey;
     const wchar_t *menuDisclaimer;
     const wchar_t *menuAbout;
     const wchar_t *menuExit;
@@ -110,13 +116,14 @@ typedef struct {
 static const LangPack g_langCN = {
         L"精密时钟", L"正在切换精密时钟...", L"● 精密时钟｜%ls", L"已校时", L"未校时｜本地",
         L"切换失败：时间源不可达", L"源间分歧：时间差超过 50ms", L"单源可用｜未交叉验证",
-        L"切换精密时钟", L"重新校时", L"设置", L"国家 / 地区", L"语言", L"免责声明", L"关于", L"退出",
+        L"切换精密时钟", L"重新校时", L"设置", L"国家 / 地区", L"语言", L"热键说明", L"免责声明", L"关于", L"退出",
         L"免责声明",
         L"本软件仅作通用时间参考，严禁作为任何医疗、航空、金融交易、法律时效、军事指挥等关键系统的唯一或决定性时间源。因使用本软件、依赖其输出、或因其时间偏差/错误造成的任何直接或间接损失，作者及发布者概不承担任何责任。\n\n如需可信时间戳，请咨询当地可信时间戳服务提供商（TSA）。\n\n服务范围：全球。",
-        L"精密时钟 / Precision Clock\n版本 2.8.0-rc1\n\n"
+        L"精密时钟 / Precision Clock\n版本 1.0.0\n\n"
         L"Copyright (C) 2026 Colligatio\nLicense: GPL-3.0\n\n"
         L"一个免费、开源、GPL-3.0 协议的桌面时间参考工具。\n"
         L"连接多个国际可信 NTP 源，交叉验证，显示毫秒级精度时间。\n\n"
+        L"窗口位置记忆 / DPI 感知 / RTT 显示 / 全局热键\n\n"
         L"本软件仅作通用时间参考，严禁作为任何医疗、航空、金融交易、法律时效、军事指挥等关键系统的唯一或决定性时间源。\n"
         L"因使用本软件、依赖其输出、或因其时间偏差/错误造成的任何直接或间接损失，作者及发布者概不承担任何责任。\n\n"
         L"如需可信时间戳，请咨询当地可信时间戳服务提供商（TSA）。",
@@ -126,13 +133,14 @@ static const LangPack g_langCN = {
 static const LangPack g_langTW = {
         L"精密時鐘", L"正在切換精密時鐘...", L"● 精密時鐘｜%ls", L"已校時", L"未校時｜本地",
         L"切換失敗：時間源不可達", L"源間分歧：時間差超過 50ms", L"單源可用｜未交叉驗證",
-        L"切換精密時鐘", L"重新校時", L"設定", L"國家 / 地區", L"語言", L"免責聲明", L"關於", L"結束",
+        L"切換精密時鐘", L"重新校時", L"設定", L"國家 / 地區", L"語言", L"熱鍵說明", L"免責聲明", L"關於", L"結束",
         L"免責聲明",
         L"本軟體僅作通用時間參考，嚴禁作為任何醫療、航空、金融交易、法律時效、軍事指揮等關鍵系統的唯一或決定性時間源。因使用本軟體、依賴其輸出、或因其時間偏差/錯誤造成的任何直接或間接損失，作者及發布者概不承擔任何責任。\n\n如需可信時間戳，請諮詢當地可信時間戳服務提供商（TSA）。\n\n服務範圍：全球。",
-        L"精密時鐘 / Precision Clock\n版本 2.8.0-rc1\n\n"
+        L"精密時鐘 / Precision Clock\n版本 1.0.0\n\n"
         L"Copyright (C) 2026 Colligatio\nLicense: GPL-3.0\n\n"
         L"一個免費、開源、GPL-3.0 協議的桌面時間參考工具。\n"
         L"連接多個國際可信 NTP 源，交叉驗證，顯示毫秒級精度時間。\n\n"
+        L"視窗位置記憶 / DPI 感知 / RTT 顯示 / 全域熱鍵\n\n"
         L"本軟體僅作通用時間參考，嚴禁作為任何醫療、航空、金融交易、法律時效、軍事指揮等關鍵系統的唯一或決定性時間源。\n"
         L"因使用本軟體、依賴其輸出、或因其時間偏差/錯誤造成的任何直接或間接損失，作者及發布者概不承擔任何責任。\n\n"
         L"如需可信時間戳，請諮詢當地可信時間戳服務提供商（TSA）。",
@@ -142,13 +150,14 @@ static const LangPack g_langTW = {
 static const LangPack g_langEN = {
         L"Precision Clock", L"Switching to Precision Clock...", L"● Precision Clock | %ls", L"Synced", L"Unsynced | Local",
         L"Sync failed: time source unreachable", L"Source conflict: time diff over 50ms", L"Single source | not cross-validated",
-        L"Toggle Precision Clock", L"Resync", L"Settings", L"Country / Region", L"Language", L"Disclaimer", L"About", L"Exit",
+        L"Toggle Precision Clock", L"Resync", L"Settings", L"Country / Region", L"Language", L"Hotkeys", L"Disclaimer", L"About", L"Exit",
         L"Disclaimer",
         L"This software is a general-purpose time reference only. It must not be used as the sole or decisive time source for any medical, aviation, financial trading, legal, military command, or other critical systems. The author and publisher assume no liability for any direct or indirect damages arising from the use of this software, reliance on its output, or any time deviation or error.\n\nFor trusted timestamps, consult a local TSA provider.\n\nService region: Global.",
-        L"Precision Clock\nVersion 2.8.0-rc1\n\n"
+        L"Precision Clock\nVersion 1.0.0\n\n"
         L"Copyright (C) 2026 Colligatio\nLicense: GPL-3.0\n\n"
         L"A free, open-source, GPL-3.0 time reference tool.\n"
         L"Connects to multiple trusted NTP sources, cross-validates, displays millisecond precision time.\n\n"
+        L"Window position memory / DPI aware / RTT display / Global hotkeys\n\n"
         L"This software is a general-purpose time reference only. It must not be used as the sole or decisive time source for any critical systems.\n"
         L"The author and publisher assume no liability for any direct or indirect damages arising from the use of this software, reliance on its output, or any time deviation or error.\n\n"
         L"For trusted timestamps, consult a local TSA provider.",
@@ -158,13 +167,14 @@ static const LangPack g_langEN = {
 static const LangPack g_langDE = {
         L"Präzisionsuhr", L"Wechsle zu Präzisionsuhr...", L"● Präzisionsuhr | %ls", L"Synchronisiert", L"Nicht synchron | Lokal",
         L"Sync fehlgeschlagen: Zeitquelle nicht erreichbar", L"Quellenkonflikt: Zeitdifferenz über 50ms", L"Einzelquelle | nicht kreuzvalidiert",
-        L"Präzisionsuhr umschalten", L"Neu synchronisieren", L"Einstellungen", L"Land / Region", L"Sprache", L"Haftungsausschluss", L"Über", L"Beenden",
+        L"Präzisionsuhr umschalten", L"Neu synchronisieren", L"Einstellungen", L"Land / Region", L"Sprache", L"Tastenkürzel", L"Haftungsausschluss", L"Über", L"Beenden",
         L"Haftungsausschluss",
         L"Diese Software dient nur als allgemeine Zeitreferenz. Sie darf nicht als einzige oder entscheidende Zeitquelle für medizinische, luftfahrttechnische, finanzielle, rechtliche, militärische oder andere kritische Systeme verwendet werden. Der Autor und Herausgeber übernimmt keine Haftung für direkte oder indirekte Schäden, die durch die Nutzung dieser Software, das Vertrauen auf ihre Ausgabe oder jegliche Zeitabweichung oder Fehler entstehen.\n\nFür vertrauenswürdige Zeitstempel wenden Sie sich bitte an einen lokalen TSA-Anbieter.\n\nServicegebiet: Global.",
-        L"Präzisionsuhr\nVersion 2.8.0-rc1\n\n"
+        L"Präzisionsuhr\nVersion 1.0.0\n\n"
         L"Copyright (C) 2026 Colligatio\nLizenz: GPL-3.0\n\n"
         L"Ein kostenloses, quelloffenes GPL-3.0-Zeitreferenztool.\n"
         L"Verbindet sich mit mehreren vertrauenswürdigen NTP-Quellen, kreuzvalidiert, zeigt millisekundengenaue Zeit an.\n\n"
+        L"Fensterpositionsspeicher / DPI-bewusst / RTT-Anzeige / Globale Hotkeys\n\n"
         L"Diese Software dient nur als allgemeine Zeitreferenz. Sie darf nicht als einzige oder entscheidende Zeitquelle für kritische Systeme verwendet werden.\n"
         L"Der Autor und Herausgeber übernimmt keine Haftung für direkte oder indirekte Schäden, die durch die Nutzung dieser Software, das Vertrauen auf ihre Ausgabe oder jegliche Zeitabweichung oder Fehler entstehen.\n\n"
         L"Für vertrauenswürdige Zeitstempel wenden Sie sich bitte an einen lokalen TSA-Anbieter.",
@@ -174,13 +184,14 @@ static const LangPack g_langDE = {
 static const LangPack g_langJP = {
         L"精密時計", L"精密時計に切り替え中...", L"● 精密時計 | %ls", L"同期済み", L"未同期 | ローカル",
         L"同期失敗：時刻ソースに到達できません", L"ソース競合：時刻差が50msを超えています", L"単一ソース | クロス検証なし",
-        L"精密時計の切替", L"再同期", L"設定", L"国 / 地域", L"言語", L"免責事項", L"バージョン情報", L"終了",
+        L"精密時計の切替", L"再同期", L"設定", L"国 / 地域", L"言語", L"ショートカット", L"免責事項", L"バージョン情報", L"終了",
         L"免責事項",
         L"本ソフトウェアは一般的な時刻参照としてのみ提供されます。医療、航空、金融取引、法務、軍事指揮などの重要なシステムの唯一または決定的な時刻源として使用しないでください。本ソフトウェアの使用、その出力への依存、または時刻の偏差や誤りに起因する直接的または間接的な損害について、作者および発行者は一切の責任を負いません。\n\n信頼できるタイムスタンプについては、お住まいの地域のTSA提供者にお問い合わせください。\n\nサービス地域：グローバル。",
-        L"精密時計 / Precision Clock\nバージョン 2.8.0-rc1\n\n"
+        L"精密時計 / Precision Clock\nバージョン 1.0.0\n\n"
         L"Copyright (C) 2026 Colligatio\nライセンス: GPL-3.0\n\n"
         L"無料のオープンソース GPL-3.0 時刻参照ツール。\n"
         L"複数の信頼できる NTP ソースに接続し、クロス検証し、ミリ秒精度の時刻を表示します。\n\n"
+        L"ウィンドウ位置記憶 / DPI 対応 / RTT 表示 / グローバルホットキー\n\n"
         L"本ソフトウェアは一般的な時刻参照としてのみ提供されます。重要なシステムの唯一または決定的な時刻源として使用しないでください。\n"
         L"本ソフトウェアの使用、その出力への依存、または時刻の偏差や誤りに起因する直接的または間接的な損害について、作者および発行者は一切の責任を負いません。\n\n"
         L"信頼できるタイムスタンプについては、お住まいの地域のTSA提供者にお問い合わせください。",
@@ -239,6 +250,14 @@ static int       g_winX = 0, g_winY = 0;
 static int       g_ntpFailCount    = 0;
 static int       g_normalFailCount = 0;
 
+// DPI
+static int       g_dpiScale = 100;   // 百分比
+static int       g_physW    = CANVAS_W;
+static int       g_physH    = CANVAS_H;
+
+// RTT
+static ULONGLONG g_lastRttMs = 0;
+
 static ULONGLONG g_baseTimeMs = 0;
 static LARGE_INTEGER g_qpcFreq, g_qpcBase;
 
@@ -283,6 +302,7 @@ static void StartNtpTask(int taskType);
 static void ApplyNormalLocal(void);
 static void EnterPrecisionModeFromResult(int status, ULONGLONG ms);
 static BOOL IsSystemLightTheme(void);
+static void SaveConfig(void);
 
 // ---------------- 语言 / 配置 ----------------
 static const LangPack* CurrentLang(void) {
@@ -334,6 +354,9 @@ static void LoadConfig(void) {
         g_config.country  = COUNTRY_INTL;
     }
 
+    g_winX = -1;
+    g_winY = -1;
+
     FILE* f = _wfopen(g_configPath, L"r");
     if (!f) return;
     char line[128];
@@ -343,6 +366,10 @@ static void LoadConfig(void) {
             g_config.country = v;
         else if (sscanf(line, "language=%d", &v) == 1 && v >= 0 && v < LANG_COUNT)
             g_config.language = v;
+        else if (sscanf(line, "winX=%d", &v) == 1)
+            g_winX = v;
+        else if (sscanf(line, "winY=%d", &v) == 1)
+            g_winY = v;
     }
     fclose(f);
 }
@@ -353,6 +380,8 @@ static void SaveConfig(void) {
     if (!f) return;
     fprintf(f, "country=%d\n", g_config.country);
     fprintf(f, "language=%d\n", g_config.language);
+    fprintf(f, "winX=%d\n", g_winX);
+    fprintf(f, "winY=%d\n", g_winY);
     fclose(f);
 }
 
@@ -368,6 +397,24 @@ static BOOL IsSystemLightTheme(void) {
         RegCloseKey(hKey);
     }
     return value != 0;
+}
+
+// ---------------- DPI ----------------
+static void ComputeDpiScale(void) {
+    HDC hdc = GetDC(NULL);
+    int dpi = GetDeviceCaps(hdc, LOGPIXELSX);
+    ReleaseDC(NULL, hdc);
+    if (dpi <= 0) dpi = 96;
+    g_dpiScale = (dpi * 100 + 48) / 96;   // 四舍五入
+    if (g_dpiScale < 100) g_dpiScale = 100;
+    g_physW = (CANVAS_W * g_dpiScale + 50) / 100;
+    g_physH = (CANVAS_H * g_dpiScale + 50) / 100;
+}
+
+static void ApplyDpiScale(Graphics& g) {
+    if (g_dpiScale != 100) {
+        g.ScaleTransform((REAL)g_dpiScale / 100.0f, (REAL)g_dpiScale / 100.0f);
+    }
 }
 
 // ---------------- 时间工具 ----------------
@@ -452,7 +499,7 @@ static ULONGLONG ParseNtpTimestamp(const unsigned char *p) {
 }
 
 // ---------------- NTP ----------------
-static int NtpGetTimeMsFromHost(const char* host, ULONGLONG* out) {
+static int NtpGetTimeMsFromHost(const char* host, ULONGLONG* out, ULONGLONG* outRtt) {
     SOCKET sock = INVALID_SOCKET;
     struct addrinfo hints, *res = NULL;
     unsigned char packet[48];
@@ -482,6 +529,7 @@ static int NtpGetTimeMsFromHost(const char* host, ULONGLONG* out) {
         ULONGLONG t3 = ParseNtpTimestamp(packet + 32);
         ULONGLONG rtt = (t4 > t1) ? (ULONGLONG)(t4 - t1) : 0ULL;
         *out = t3 + rtt / 2ULL;
+        if (outRtt) *outRtt = rtt;
         ok = 0;
     }
 
@@ -491,20 +539,31 @@ static int NtpGetTimeMsFromHost(const char* host, ULONGLONG* out) {
     return ok;
 }
 
-typedef struct { char host[128]; ULONGLONG timeMs; int ok; } NtpQuery;
+typedef struct {
+    char host[128];
+    ULONGLONG timeMs;
+    ULONGLONG rttMs;
+    volatile LONG ok;
+    volatile LONG done;
+} NtpQuery;
 
 static DWORD WINAPI NtpWorker(LPVOID param) {
-NtpQuery* q = (NtpQuery*)param;
-ULONGLONG ms = 0;
-q->ok = (NtpGetTimeMsFromHost(q->host, &ms) == 0);
-q->timeMs = ms;
-return 0;
+    NtpQuery* q = (NtpQuery*)param;
+    ULONGLONG ms = 0;
+    ULONGLONG rtt = 0;
+    if (NtpGetTimeMsFromHost(q->host, &ms, &rtt) == 0 && ms > 0) {
+        q->timeMs = ms;
+        q->rttMs  = rtt;
+        InterlockedExchange(&q->ok, 1);
+    }
+    InterlockedExchange(&q->done, 1);
+    return 0;
 }
 
 static int QueryNtpSources(ULONGLONG* outTime, wchar_t* outSourceName, int nameCap) {
-    NtpQuery queries[MAX_NTP_SOURCES];
+    NtpQuery* queries = (NtpQuery*)calloc(MAX_NTP_SOURCES, sizeof(NtpQuery));
+    if (!queries) { if (outSourceName) outSourceName[0] = 0; return -1; }
     int n = 0;
-    memset(queries, 0, sizeof(queries));
 
     const char* primary = g_countryHosts[g_config.country];
     snprintf(queries[n].host, sizeof(queries[n].host), "%s", primary);
@@ -525,54 +584,87 @@ static int QueryNtpSources(ULONGLONG* outTime, wchar_t* outSourceName, int nameC
     for (int i = 0; i < n; i++) {
         threads[i] = CreateThread(NULL, 0, NtpWorker, &queries[i], 0, NULL);
     }
+
+    BOOL  allDone = TRUE;
+    DWORD start   = GetTickCount();
     for (int i = 0; i < n; i++) {
         if (threads[i]) {
-            WaitForSingleObject(threads[i], NTP_TIMEOUT_MS + 1000);
+            DWORD elapsed = GetTickCount() - start;
+            DWORD remain  = (elapsed < (NTP_TIMEOUT_MS + 1000))
+                          ? ((NTP_TIMEOUT_MS + 1000) - elapsed) : 0;
+            DWORD wr = WaitForSingleObject(threads[i], remain);
+            if (wr != WAIT_OBJECT_0) allDone = FALSE;
             CloseHandle(threads[i]);
         }
     }
 
     ULONGLONG times[MAX_NTP_SOURCES];
+    ULONGLONG rtts[MAX_NTP_SOURCES];
     int cnt = 0;
     for (int i = 0; i < n; i++) {
-        if (queries[i].ok && queries[i].timeMs > 0) times[cnt++] = queries[i].timeMs;
+        if (InterlockedCompareExchange(&queries[i].done, 0, 0) == 1 &&
+            InterlockedCompareExchange(&queries[i].ok,   0, 0) == 1 &&
+            queries[i].timeMs > 0) {
+            times[cnt] = queries[i].timeMs;
+            rtts[cnt]  = queries[i].rttMs;
+            cnt++;
+        }
     }
 
     if (cnt == 0) {
         if (outSourceName) outSourceName[0] = 0;
+        g_lastRttMs = 0;
+        if (allDone) free(queries);
         return -1;
     }
 
-    for (int i = 0; i < cnt - 1; i++)
-        for (int j = i + 1; j < cnt; j++)
-            if (times[i] > times[j]) { ULONGLONG t = times[i]; times[i] = times[j]; times[j] = t; }
+    // 同步排序 times 和 rtts
+    for (int i = 0; i < cnt - 1; i++) {
+        for (int j = i + 1; j < cnt; j++) {
+            if (times[i] > times[j]) {
+                ULONGLONG t = times[i]; times[i] = times[j]; times[j] = t;
+                ULONGLONG r = rtts[i];  rtts[i]  = rtts[j];  rtts[j]  = r;
+            }
+        }
+    }
 
-    ULONGLONG median = times[cnt / 2];
+    ULONGLONG median  = times[cnt / 2];
     ULONGLONG maxDiff = times[cnt - 1] - times[0];
     *outTime = median;
+
+    // 取最小 RTT 作为显示值（最优路径）
+    ULONGLONG minRtt = rtts[0];
+    for (int i = 1; i < cnt; i++) {
+        if (rtts[i] < minRtt) minRtt = rtts[i];
+    }
+    g_lastRttMs = minRtt;
 
     if (outSourceName) {
         const wchar_t* cname = CountryName(g_config.country);
         swprintf_s(outSourceName, nameCap, L"%ls", cname);
     }
 
+    int result;
     if (cnt >= 2) {
-        if (maxDiff <= CROSS_VALIDATE_MAX_DIFF_MS) return 0;
-        return 2;
+        result = (maxDiff <= CROSS_VALIDATE_MAX_DIFF_MS) ? 0 : 2;
+    } else {
+        result = 1;
     }
-    return 1;
+
+    if (allDone) free(queries);
+    return result;
 }
 
 static DWORD WINAPI NtpThread(LPVOID param) {
-ULONGLONG ms = 0;
-wchar_t src[64] = {0};
-int status = QueryNtpSources(&ms, src, 64);
-g_ntpResult = ms;
-g_ntpStatus = status;
-wcsncpy_s(g_lastSource, 64, src, _TRUNCATE);
-InterlockedExchange(&g_ntpPending, 0);
-PostMessage(g_hwnd, WM_NTP_DONE, 0, 0);
-return 0;
+    ULONGLONG ms = 0;
+    wchar_t src[64] = {0};
+    int status = QueryNtpSources(&ms, src, 64);
+    g_ntpResult = ms;
+    g_ntpStatus = status;
+    wcsncpy_s(g_lastSource, 64, src, _TRUNCATE);
+    InterlockedExchange(&g_ntpPending, 0);
+    PostMessage(g_hwnd, WM_NTP_DONE, 0, 0);
+    return 0;
 }
 
 static void StartNtpTask(int taskType) {
@@ -588,6 +680,7 @@ static void ApplyNormalLocal(void) {
     g_baseTimeMs = LocalToUnixMs();
     QueryPerformanceCounter(&g_qpcBase);
     g_normalSynced = FALSE;
+    g_lastRttMs = 0;
 }
 
 static void EnterPrecisionModeFromResult(int status, ULONGLONG ms) {
@@ -635,6 +728,11 @@ static void ToggleMode(void) {
     else                        ExitPrecisionMode();
 }
 
+static void ToggleWindowVisible(void) {
+    g_windowVisible = !g_windowVisible;
+    ShowWindow(g_hwnd, g_windowVisible ? SW_SHOWNOACTIVATE : SW_HIDE);
+}
+
 // ---------------- 绘制 ----------------
 static void DrawColligatioLogo(Graphics &g, int x, int y) {
     Pen penBlack(Color(255, 20, 20, 20), 1.5f);
@@ -680,7 +778,15 @@ static void DrawAeroGlass(Graphics &g, int w, int h, BOOL light) {
     }
 }
 
+static void AppendRtt(wchar_t* buf, int cap) {
+    if (g_lastRttMs == 0) return;
+    wchar_t tmp[32];
+    swprintf_s(tmp, 32, L" | RTT %llums", g_lastRttMs);
+    wcsncat_s(buf, cap, tmp, _TRUNCATE);
+}
+
 static void BuildStatusW(wchar_t *buf, int cap) {
+    buf[0] = 0;
     if (g_switching || g_normalSyncing) {
         wcsncpy_s(buf, cap, g_lang->switching, _TRUNCATE);
         return;
@@ -691,18 +797,28 @@ static void BuildStatusW(wchar_t *buf, int cap) {
         return;
     }
     if (g_mode == MODE_EVIDENCE) {
-        if (g_ntpStatus == 1) { wcsncpy_s(buf, cap, g_lang->singleSourceWarn, _TRUNCATE); return; }
-        if (g_ntpStatus == 2) { wcsncpy_s(buf, cap, g_lang->sourceConflict, _TRUNCATE); return; }
+        if (g_ntpStatus == 1) {
+            wcsncpy_s(buf, cap, g_lang->singleSourceWarn, _TRUNCATE);
+            AppendRtt(buf, cap);
+            return;
+        }
+        if (g_ntpStatus == 2) {
+            wcsncpy_s(buf, cap, g_lang->sourceConflict, _TRUNCATE);
+            return;
+        }
         wchar_t tmp[96];
         swprintf_s(tmp, 96, g_lang->syncOn, g_lastSource);
         wcsncpy_s(buf, cap, tmp, _TRUNCATE);
+        AppendRtt(buf, cap);
         return;
     }
     wcsncpy_s(buf, cap, g_normalSynced ? g_lang->synced : g_lang->unsynced, _TRUNCATE);
+    if (g_normalSynced) AppendRtt(buf, cap);
 }
 
 static void DrawTextsWithGDI(void) {
     Graphics g(g_memDC);
+    ApplyDpiScale(g);
     g.SetTextRenderingHint(TextRenderingHintAntiAlias);
     g.SetSmoothingMode(SmoothingModeAntiAlias);
 
@@ -725,12 +841,18 @@ static void DrawTextsWithGDI(void) {
 
     // 状态
     {
-        wchar_t status[128];
-        BuildStatusW(status, 128);
+        wchar_t status[160];
+        BuildStatusW(status, 160);
 
         Font fontSmall(g_lang->fontStatus, 12, FontStyleRegular, UnitPixel);
-        SolidBrush brush(g_lightTheme ? Color(255, 0, 0, 0) : Color(255, 255, 255, 255));
-        RectF rc(66.0f, 54.0f, 200.0f, 20.0f);
+        Color statusColor;
+        if (g_lastRttMs > 500 && g_lastRttMs > 0) {
+            statusColor = Color(255, 240, 140, 60);   // 橙色提示
+        } else {
+            statusColor = g_lightTheme ? Color(255, 0, 0, 0) : Color(255, 255, 255, 255);
+        }
+        SolidBrush brush(statusColor);
+        RectF rc(66.0f, 54.0f, 220.0f, 20.0f);
         g.DrawString(status, -1, &fontSmall, rc, NULL, &brush);
     }
 
@@ -777,6 +899,7 @@ static void Render(void) {
 
     {
         Graphics g(g_memDC);
+        ApplyDpiScale(g);
         g.SetSmoothingMode(SmoothingModeAntiAlias);
         g.SetTextRenderingHint(TextRenderingHintAntiAlias);
         g.Clear(Color(0, 0, 0, 0));
@@ -788,7 +911,7 @@ static void Render(void) {
 
     HDC screenDC = GetDC(NULL);
     POINT ptSrc = {0, 0};
-    SIZE  size  = {CANVAS_W, CANVAS_H};
+    SIZE  size  = {g_physW, g_physH};
     POINT ptDst = {g_winX, g_winY};
     BLENDFUNCTION blend = {AC_SRC_OVER, 0, 255, AC_SRC_ALPHA};
     UpdateLayeredWindow(g_hwnd, screenDC, &ptDst, &size, g_memDC, &ptSrc, 0, &blend, ULW_ALPHA);
@@ -820,6 +943,8 @@ static void ShowTrayMenu(void) {
         AppendMenuW(hLang, flags, IDM_LANG_BASE + i, g_langNames[i]);
     }
     AppendMenuW(hSettings, MF_POPUP, (UINT_PTR)hLang, L->menuLanguage);
+    AppendMenuW(hSettings, MF_SEPARATOR, 0, NULL);
+    AppendMenuW(hSettings, MF_STRING, IDM_HOTKEY_INFO, L->menuHotkey);
 
     AppendMenuW(hMenu, MF_POPUP, (UINT_PTR)hSettings, L->menuSettings);
     AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
@@ -844,6 +969,18 @@ static void ShowTrayMenu(void) {
         MessageBoxW(g_hwnd, L->disclaimerBody, L->disclaimerTitle, MB_OK | MB_ICONINFORMATION);
     } else if (cmd == IDM_ABOUT) {
         MessageBoxW(g_hwnd, L->aboutBody, L->menuAbout, MB_OK | MB_ICONINFORMATION);
+    } else if (cmd == IDM_HOTKEY_INFO) {
+        const wchar_t* info;
+        if (g_config.language == LANG_CN || g_config.language == LANG_TW) {
+            info = L"快捷键:\n\n  Ctrl+Alt+T    显示 / 隐藏窗口\n  Ctrl+Alt+M    切换普通 / 精密模式\n  Ctrl+Alt+R    强制重新校时";
+        } else if (g_config.language == LANG_DE) {
+            info = L"Tastenkürzel:\n\n  Strg+Alt+T    Anzeigen / Verstecken\n  Strg+Alt+M    Modus wechseln\n  Strg+Alt+R    Neu synchronisieren";
+        } else if (g_config.language == LANG_JP) {
+            info = L"ショートカット:\n\n  Ctrl+Alt+T    表示 / 非表示\n  Ctrl+Alt+M    モード切替\n  Ctrl+Alt+R    再同期";
+        } else {
+            info = L"Hotkeys:\n\n  Ctrl+Alt+T    Show / Hide\n  Ctrl+Alt+M    Toggle Mode\n  Ctrl+Alt+R    Resync";
+        }
+        MessageBoxW(g_hwnd, info, L->menuHotkey, MB_OK | MB_ICONINFORMATION);
     } else if (cmd == IDM_EXIT) {
         DestroyWindow(g_hwnd);
     } else if (cmd >= IDM_COUNTRY_BASE && cmd < IDM_COUNTRY_BASE + COUNTRY_COUNT) {
@@ -900,6 +1037,10 @@ static void RemoveTrayIcon(void) {
 }
 
 static int HitTestButton(int mx, int my) {
+    // mx,my 是物理像素；转为逻辑坐标
+    float lx = (float)mx * 100.0f / (float)g_dpiScale;
+    float ly = (float)my * 100.0f / (float)g_dpiScale;
+
     float cy = BTN_CY;
     float r  = BTN_R;
 
@@ -910,8 +1051,8 @@ static int HitTestButton(int mx, int my) {
     };
 
     for (int i = 0; i < 3; i++) {
-        float dx = (float)mx - btns[i].cx;
-        float dy = (float)my - cy;
+        float dx = lx - btns[i].cx;
+        float dy = ly - cy;
         if (dx * dx + dy * dy <= r * r) return btns[i].id;
     }
     return 0;
@@ -919,195 +1060,213 @@ static int HitTestButton(int mx, int my) {
 
 // ---------------- 窗口过程 ----------------
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
-switch (msg) {
-case WM_CREATE:
-SetWindowTextW(hwnd, g_lang->wndTitle);
-return 0;
+    switch (msg) {
+    case WM_CREATE:
+        SetWindowTextW(hwnd, g_lang->wndTitle);
+        RegisterHotKey(hwnd, HOTKEY_ID_TOGGLE, MOD_CONTROL | MOD_ALT | MOD_NOREPEAT, 'T');
+        RegisterHotKey(hwnd, HOTKEY_ID_MODE,   MOD_CONTROL | MOD_ALT | MOD_NOREPEAT, 'M');
+        RegisterHotKey(hwnd, HOTKEY_ID_RESYNC, MOD_CONTROL | MOD_ALT | MOD_NOREPEAT, 'R');
+        return 0;
 
-case WM_TRAYICON:
-if (LOWORD(lp) == WM_LBUTTONUP) {
-g_windowVisible = !g_windowVisible;
-ShowWindow(hwnd, g_windowVisible ? SW_SHOWNOACTIVATE : SW_HIDE);
-} else if (LOWORD(lp) == WM_RBUTTONUP) {
-ShowTrayMenu();
-}
-return 0;
+    case WM_HOTKEY:
+        if (wp == HOTKEY_ID_TOGGLE) {
+            ToggleWindowVisible();
+        } else if (wp == HOTKEY_ID_MODE) {
+            ToggleMode();
+        } else if (wp == HOTKEY_ID_RESYNC) {
+            if (g_mode == MODE_EVIDENCE) StartNtpTask(2);
+            else                          StartNtpTask(0);
+        }
+        return 0;
 
-case WM_TIMER:
-if (wp == TIMER_DISPLAY) {
-Render();
-} else if (wp == TIMER_RESYNC && g_mode == MODE_EVIDENCE) {
-StartNtpTask(2);
-} else if (wp == TIMER_FAILMSG) {
-KillTimer(hwnd, TIMER_FAILMSG);
-g_showFailMsg = FALSE;
-Render();
-} else if (wp == TIMER_NORMAL_RESYNC && g_mode == MODE_NORMAL) {
-StartNtpTask(0);
-}
-return 0;
+    case WM_TRAYICON:
+        if (LOWORD(lp) == WM_LBUTTONUP) {
+            ToggleWindowVisible();
+        } else if (LOWORD(lp) == WM_RBUTTONUP) {
+            ShowTrayMenu();
+        }
+        return 0;
 
-case WM_NTP_DONE: {
-int status = g_ntpStatus;
-ULONGLONG ms = g_ntpResult;
+    case WM_TIMER:
+        if (wp == TIMER_DISPLAY) {
+            Render();
+        } else if (wp == TIMER_RESYNC && g_mode == MODE_EVIDENCE) {
+            StartNtpTask(2);
+        } else if (wp == TIMER_FAILMSG) {
+            KillTimer(hwnd, TIMER_FAILMSG);
+            g_showFailMsg = FALSE;
+            Render();
+        } else if (wp == TIMER_NORMAL_RESYNC && g_mode == MODE_NORMAL) {
+            StartNtpTask(0);
+        }
+        return 0;
 
-if (g_ntpTask == 0) {
-if (status == 0 || status == 1) {
-g_baseTimeMs = ms;
-QueryPerformanceCounter(&g_qpcBase);
-g_normalSynced = TRUE;
-g_normalFailCount = 0;
-} else {
-g_normalFailCount++;
-if (g_normalFailCount >= NORMAL_MAX_FAIL) {
-ApplyNormalLocal();
-}
-}
-g_switching = FALSE;
-g_normalSyncing = FALSE;
-} else if (g_ntpTask == 1) {
-EnterPrecisionModeFromResult(status, ms);
-} else if (g_ntpTask == 2) {
-if (status == 0 || status == 1) {
-g_baseTimeMs = ms;
-QueryPerformanceCounter(&g_qpcBase);
-g_ntpFailCount = 0;
-KillTimer(hwnd, TIMER_RESYNC);
-SetTimer(hwnd, TIMER_RESYNC, EVIDENCE_RESYNC_MS, NULL);
-} else if (status == 2) {
-KillTimer(hwnd, TIMER_RESYNC);
-KillTimer(hwnd, TIMER_DISPLAY);
-SetTimer(hwnd, TIMER_DISPLAY, 500, NULL);
-g_mode = MODE_NORMAL;
-ApplyNormalLocal();
-g_ntpFailCount = 0;
-SetTimer(hwnd, TIMER_NORMAL_RESYNC, NORMAL_RESYNC_MS, NULL);
-g_showFailMsg = TRUE;
-KillTimer(hwnd, TIMER_FAILMSG);
-SetTimer(hwnd, TIMER_FAILMSG, 2500, NULL);
-} else {
-g_ntpFailCount++;
-if (g_ntpFailCount < 2) {
-KillTimer(hwnd, TIMER_RESYNC);
-SetTimer(hwnd, TIMER_RESYNC, 5000, NULL);
-} else {
-KillTimer(hwnd, TIMER_RESYNC);
-KillTimer(hwnd, TIMER_DISPLAY);
-SetTimer(hwnd, TIMER_DISPLAY, 500, NULL);
-g_mode = MODE_NORMAL;
-ApplyNormalLocal();
-g_ntpFailCount = 0;
-SetTimer(hwnd, TIMER_NORMAL_RESYNC, NORMAL_RESYNC_MS, NULL);
-g_showFailMsg = TRUE;
-KillTimer(hwnd, TIMER_FAILMSG);
-SetTimer(hwnd, TIMER_FAILMSG, 2500, NULL);
-}
-}
-g_switching = FALSE;
-}
+    case WM_NTP_DONE: {
+        int status = g_ntpStatus;
+        ULONGLONG ms = g_ntpResult;
 
-if (g_pendingResync) {
-g_pendingResync = FALSE;
-if (g_mode == MODE_NORMAL) {
-StartNtpTask(0);
-} else {
-g_switching = TRUE;
-StartNtpTask(2);
-}
-}
-Render();
-return 0;
-}
+        if (g_ntpTask == 0) {
+            if (status == 0 || status == 1) {
+                g_baseTimeMs = ms;
+                QueryPerformanceCounter(&g_qpcBase);
+                g_normalSynced = TRUE;
+                g_normalFailCount = 0;
+            } else {
+                g_normalFailCount++;
+                if (g_normalFailCount >= NORMAL_MAX_FAIL) {
+                    ApplyNormalLocal();
+                }
+            }
+            g_switching = FALSE;
+            g_normalSyncing = FALSE;
+        } else if (g_ntpTask == 1) {
+            EnterPrecisionModeFromResult(status, ms);
+        } else if (g_ntpTask == 2) {
+            if (status == 0 || status == 1) {
+                g_baseTimeMs = ms;
+                QueryPerformanceCounter(&g_qpcBase);
+                g_ntpFailCount = 0;
+                KillTimer(hwnd, TIMER_RESYNC);
+                SetTimer(hwnd, TIMER_RESYNC, EVIDENCE_RESYNC_MS, NULL);
+            } else if (status == 2) {
+                KillTimer(hwnd, TIMER_RESYNC);
+                KillTimer(hwnd, TIMER_DISPLAY);
+                SetTimer(hwnd, TIMER_DISPLAY, 500, NULL);
+                g_mode = MODE_NORMAL;
+                ApplyNormalLocal();
+                g_ntpFailCount = 0;
+                SetTimer(hwnd, TIMER_NORMAL_RESYNC, NORMAL_RESYNC_MS, NULL);
+                g_showFailMsg = TRUE;
+                KillTimer(hwnd, TIMER_FAILMSG);
+                SetTimer(hwnd, TIMER_FAILMSG, 2500, NULL);
+            } else {
+                g_ntpFailCount++;
+                if (g_ntpFailCount < 2) {
+                    KillTimer(hwnd, TIMER_RESYNC);
+                    SetTimer(hwnd, TIMER_RESYNC, 5000, NULL);
+                } else {
+                    KillTimer(hwnd, TIMER_RESYNC);
+                    KillTimer(hwnd, TIMER_DISPLAY);
+                    SetTimer(hwnd, TIMER_DISPLAY, 500, NULL);
+                    g_mode = MODE_NORMAL;
+                    ApplyNormalLocal();
+                    g_ntpFailCount = 0;
+                    SetTimer(hwnd, TIMER_NORMAL_RESYNC, NORMAL_RESYNC_MS, NULL);
+                    g_showFailMsg = TRUE;
+                    KillTimer(hwnd, TIMER_FAILMSG);
+                    SetTimer(hwnd, TIMER_FAILMSG, 2500, NULL);
+                }
+            }
+            g_switching = FALSE;
+        }
 
-case WM_MOUSEMOVE: {
-int mx = (int)(short)LOWORD(lp);
-int my = (int)(short)HIWORD(lp);
+        if (g_pendingResync) {
+            g_pendingResync = FALSE;
+            if (g_mode == MODE_NORMAL) {
+                StartNtpTask(0);
+            } else {
+                g_switching = TRUE;
+                StartNtpTask(2);
+            }
+        }
+        Render();
+        return 0;
+    }
 
-int newHover = HitTestButton(mx, my);
-if (newHover != g_hoverBtn) {
-g_hoverBtn = newHover;
-Render();
-}
+    case WM_MOUSEMOVE: {
+        int mx = (int)(short)LOWORD(lp);
+        int my = (int)(short)HIWORD(lp);
 
-if (g_dragging) {
-POINT p;
-GetCursorPos(&p);
-g_winX += (p.x - g_dragAnchor.x);
-g_winY += (p.y - g_dragAnchor.y);
-g_dragAnchor = p;
-Render();
-}
+        int newHover = HitTestButton(mx, my);
+        if (newHover != g_hoverBtn) {
+            g_hoverBtn = newHover;
+            Render();
+        }
 
-TRACKMOUSEEVENT tme = {0};
-tme.cbSize = sizeof(tme);
-tme.dwFlags = TME_LEAVE;
-tme.hwndTrack = hwnd;
-TrackMouseEvent(&tme);
-return 0;
-}
+        if (g_dragging) {
+            POINT p;
+            GetCursorPos(&p);
+            g_winX += (p.x - g_dragAnchor.x);
+            g_winY += (p.y - g_dragAnchor.y);
+            g_dragAnchor = p;
+            Render();
+        }
 
-case WM_MOUSELEAVE:
-if (g_hoverBtn != 0) {
-g_hoverBtn = 0;
-Render();
-}
-return 0;
+        TRACKMOUSEEVENT tme = {0};
+        tme.cbSize = sizeof(tme);
+        tme.dwFlags = TME_LEAVE;
+        tme.hwndTrack = hwnd;
+        TrackMouseEvent(&tme);
+        return 0;
+    }
 
-case WM_LBUTTONDOWN: {
-int mx = (int)(short)LOWORD(lp);
-int my = (int)(short)HIWORD(lp);
-int btn = HitTestButton(mx, my);
+    case WM_MOUSELEAVE:
+        if (g_hoverBtn != 0) {
+            g_hoverBtn = 0;
+            Render();
+        }
+        return 0;
 
-if (btn == 1) {
-DestroyWindow(hwnd);
-return 0;
-} else if (btn == 2) {
-g_windowVisible = FALSE;
-ShowWindow(hwnd, SW_HIDE);
-return 0;
-} else if (btn == 3) {
-ToggleMode();
-return 0;
-}
+    case WM_LBUTTONDOWN: {
+        int mx = (int)(short)LOWORD(lp);
+        int my = (int)(short)HIWORD(lp);
+        int btn = HitTestButton(mx, my);
 
-if (GetMessageTime() - (LONG)g_lastClick < GetDoubleClickTime()) {
-g_lastClick = 0;
-ToggleMode();
-} else {
-g_lastClick = GetMessageTime();
-g_dragging = TRUE;
-GetCursorPos(&g_dragAnchor);
-SetCapture(hwnd);
-}
-return 0;
-}
+        if (btn == 1) {
+            DestroyWindow(hwnd);
+            return 0;
+        } else if (btn == 2) {
+            g_windowVisible = FALSE;
+            ShowWindow(hwnd, SW_HIDE);
+            return 0;
+        } else if (btn == 3) {
+            ToggleMode();
+            return 0;
+        }
 
-case WM_LBUTTONUP:
-if (g_dragging) {
-g_dragging = FALSE;
-ReleaseCapture();
-}
-return 0;
+        if (GetMessageTime() - (LONG)g_lastClick < GetDoubleClickTime()) {
+            g_lastClick = 0;
+            ToggleMode();
+        } else {
+            g_lastClick = GetMessageTime();
+            g_dragging = TRUE;
+            GetCursorPos(&g_dragAnchor);
+            SetCapture(hwnd);
+        }
+        return 0;
+    }
 
-case WM_RBUTTONUP:
-ShowTrayMenu();
-return 0;
+    case WM_LBUTTONUP:
+        if (g_dragging) {
+            g_dragging = FALSE;
+            ReleaseCapture();
+            SaveConfig();   // 拖动结束后保存位置
+        }
+        return 0;
 
-case WM_SETTINGCHANGE:
-g_lightTheme = IsSystemLightTheme();
-Render();
-return 0;
+    case WM_RBUTTONUP:
+        ShowTrayMenu();
+        return 0;
 
-case WM_DESTROY:
-KillTimer(hwnd, TIMER_DISPLAY);
-KillTimer(hwnd, TIMER_RESYNC);
-KillTimer(hwnd, TIMER_FAILMSG);
-KillTimer(hwnd, TIMER_NORMAL_RESYNC);
-RemoveTrayIcon();
-PostQuitMessage(0);
-return 0;
-}
-return DefWindowProcW(hwnd, msg, wp, lp);
+    case WM_SETTINGCHANGE:
+        g_lightTheme = IsSystemLightTheme();
+        Render();
+        return 0;
+
+    case WM_DESTROY:
+        UnregisterHotKey(hwnd, HOTKEY_ID_TOGGLE);
+        UnregisterHotKey(hwnd, HOTKEY_ID_MODE);
+        UnregisterHotKey(hwnd, HOTKEY_ID_RESYNC);
+        KillTimer(hwnd, TIMER_DISPLAY);
+        KillTimer(hwnd, TIMER_RESYNC);
+        KillTimer(hwnd, TIMER_FAILMSG);
+        KillTimer(hwnd, TIMER_NORMAL_RESYNC);
+        SaveConfig();
+        RemoveTrayIcon();
+        PostQuitMessage(0);
+        return 0;
+    }
+    return DefWindowProcW(hwnd, msg, wp, lp);
 }
 
 // ---------------- 初始化 / 清理 ----------------
@@ -1116,8 +1275,8 @@ static BOOL InitGdiplusResources(void) {
     g_memDC = CreateCompatibleDC(screenDC);
     BITMAPINFO bmi = {0};
     bmi.bmiHeader.biSize        = sizeof(BITMAPINFOHEADER);
-    bmi.bmiHeader.biWidth       = CANVAS_W;
-    bmi.bmiHeader.biHeight      = -CANVAS_H;
+    bmi.bmiHeader.biWidth       = g_physW;
+    bmi.bmiHeader.biHeight      = -g_physH;
     bmi.bmiHeader.biPlanes      = 1;
     bmi.bmiHeader.biBitCount    = 32;
     bmi.bmiHeader.biCompression = BI_RGB;
@@ -1135,90 +1294,122 @@ static void CleanupGdiplusResources(void) {
     g_memDC = NULL; g_hBitmap = NULL; g_oldBmp = NULL; g_pBits = NULL;
 }
 
+// DPI 感知：动态加载
+typedef BOOL (WINAPI *PFN_SetProcessDpiAwarenessContext)(HANDLE);
+typedef BOOL (WINAPI *PFN_SetProcessDPIAware)(void);
+
+static void EnableDpiAwareness(void) {
+    HMODULE hUser = GetModuleHandleW(L"user32.dll");
+    if (hUser) {
+        PFN_SetProcessDpiAwarenessContext pSetCtx =
+            (PFN_SetProcessDpiAwarenessContext)GetProcAddress(hUser, "SetProcessDpiAwarenessContext");
+        if (pSetCtx) {
+            // DPI_AWARENESS_CONTEXT_SYSTEM_AWARE = -2
+            pSetCtx((HANDLE)-2);
+            return;
+        }
+        PFN_SetProcessDPIAware pSet = (PFN_SetProcessDPIAware)GetProcAddress(hUser, "SetProcessDPIAware");
+        if (pSet) pSet();
+    }
+}
+
 // ---------------- WinMain ----------------
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR cmd, int show) {
-(void)hPrev; (void)cmd; (void)show;
+    (void)hPrev; (void)cmd; (void)show;
 
-// ---- 单实例锁 ----
-HANDLE hMutex = CreateMutexW(NULL, TRUE, L"PrecisionClock_SingleInstance_Mutex");
-if (hMutex && GetLastError() == ERROR_ALREADY_EXISTS) {
-HWND hPrevWnd = FindWindowW(L"PrecisionClockWnd", NULL);
-if (hPrevWnd) {
-ShowWindow(hPrevWnd, SW_SHOWNOACTIVATE);
-SetForegroundWindow(hPrevWnd);
-}
-CloseHandle(hMutex);
-return 0;
-}
-// ---- 单实例锁结束 ----
+    // 1) DPI 感知（必须在任何窗口创建前）
+    EnableDpiAwareness();
 
-LoadConfig();
-g_lang = CurrentLang();
-g_lightTheme = IsSystemLightTheme();
+    // 2) 单实例锁
+    HANDLE hMutex = CreateMutexW(NULL, TRUE, L"PrecisionClock_SingleInstance_Mutex");
+    if (hMutex && GetLastError() == ERROR_ALREADY_EXISTS) {
+        HWND hPrevWnd = FindWindowW(L"PrecisionClockWnd", NULL);
+        if (hPrevWnd) {
+            ShowWindow(hPrevWnd, SW_SHOWNOACTIVATE);
+            SetForegroundWindow(hPrevWnd);
+        }
+        CloseHandle(hMutex);
+        return 0;
+    }
 
-GdiplusStartupInput gsi;
-if (GdiplusStartup(&g_gdiplusToken, &gsi, NULL) != Ok) return 1;
+    // 3) 配置
+    LoadConfig();
+    g_lang = CurrentLang();
+    g_lightTheme = IsSystemLightTheme();
 
-WSADATA wsa;
-if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
-GdiplusShutdown(g_gdiplusToken);
-return 1;
-}
+    // 4) DPI 计算
+    ComputeDpiScale();
 
-QueryPerformanceFrequency(&g_qpcFreq);
-QueryPerformanceCounter(&g_qpcBase);
+    // 5) GDI+ / Winsock
+    GdiplusStartupInput gsi;
+    if (GdiplusStartup(&g_gdiplusToken, &gsi, NULL) != Ok) return 1;
 
-WNDCLASSEXW wc = {0};
-wc.cbSize        = sizeof(wc);
-wc.lpfnWndProc   = WndProc;
-wc.hInstance     = hInst;
-wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
-wc.hbrBackground = NULL;
-wc.lpszClassName = L"PrecisionClockWnd";
-RegisterClassExW(&wc);
+    WSADATA wsa;
+    if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+        GdiplusShutdown(g_gdiplusToken);
+        return 1;
+    }
 
-g_winX = GetSystemMetrics(SM_CXSCREEN) - CANVAS_W - WINDOW_MARGIN;
-g_winY = GetSystemMetrics(SM_CYSCREEN) - CANVAS_H - WINDOW_MARGIN - 60;
+    QueryPerformanceFrequency(&g_qpcFreq);
+    QueryPerformanceCounter(&g_qpcBase);
 
-g_hwnd = CreateWindowExW(
-        WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
-        L"PrecisionClockWnd", g_lang->wndTitle,
-        WS_POPUP,
-        g_winX, g_winY, CANVAS_W, CANVAS_H,
-        NULL, NULL, hInst, NULL);
+    // 6) 窗口位置（配置恢复 + 超屏回退）
+    int maxX = GetSystemMetrics(SM_CXSCREEN) - g_physW;
+    int maxY = GetSystemMetrics(SM_CYSCREEN) - g_physH;
+    if (g_winX < 0 || g_winX > maxX || g_winY < 0 || g_winY > maxY) {
+        g_winX = GetSystemMetrics(SM_CXSCREEN) - g_physW - WINDOW_MARGIN;
+        g_winY = GetSystemMetrics(SM_CYSCREEN) - g_physH - WINDOW_MARGIN - 60;
+    }
 
-if (!g_hwnd) {
-WSACleanup();
-GdiplusShutdown(g_gdiplusToken);
-return 1;
-}
+    // 7) 注册窗口类
+    WNDCLASSEXW wc = {0};
+    wc.cbSize        = sizeof(wc);
+    wc.lpfnWndProc   = WndProc;
+    wc.hInstance     = hInst;
+    wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
+    wc.hbrBackground = NULL;
+    wc.lpszClassName = L"PrecisionClockWnd";
+    RegisterClassExW(&wc);
 
-if (!InitGdiplusResources()) {
-DestroyWindow(g_hwnd);
-WSACleanup();
-GdiplusShutdown(g_gdiplusToken);
-return 1;
-}
+    g_hwnd = CreateWindowExW(
+            WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
+            L"PrecisionClockWnd", g_lang->wndTitle,
+            WS_POPUP,
+            g_winX, g_winY, g_physW, g_physH,
+            NULL, NULL, hInst, NULL);
 
-InitTrayIcon(hInst);
-UpdateTrayTip();
+    if (!g_hwnd) {
+        WSACleanup();
+        GdiplusShutdown(g_gdiplusToken);
+        return 1;
+    }
 
-ApplyNormalLocal();
-Render();
-ShowWindow(g_hwnd, SW_SHOWNOACTIVATE);
+    if (!InitGdiplusResources()) {
+        DestroyWindow(g_hwnd);
+        WSACleanup();
+        GdiplusShutdown(g_gdiplusToken);
+        return 1;
+    }
 
-SetTimer(g_hwnd, TIMER_DISPLAY, 500, NULL);
-SetTimer(g_hwnd, TIMER_NORMAL_RESYNC, NORMAL_RESYNC_MS, NULL);
-StartNtpTask(0);
+    InitTrayIcon(hInst);
+    UpdateTrayTip();
 
-MSG msg;
-while (GetMessageW(&msg, NULL, 0, 0) > 0) {
-TranslateMessage(&msg);
-DispatchMessageW(&msg);
-}
+    ApplyNormalLocal();
+    Render();
+    ShowWindow(g_hwnd, SW_SHOWNOACTIVATE);
 
-CleanupGdiplusResources();
-WSACleanup();
-GdiplusShutdown(g_gdiplusToken);
-return (int)msg.wParam;
+    SetTimer(g_hwnd, TIMER_DISPLAY, 500, NULL);
+    SetTimer(g_hwnd, TIMER_NORMAL_RESYNC, NORMAL_RESYNC_MS, NULL);
+    StartNtpTask(0);
+
+    MSG msg;
+    while (GetMessageW(&msg, NULL, 0, 0) > 0) {
+        TranslateMessage(&msg);
+        DispatchMessageW(&msg);
+    }
+
+    CleanupGdiplusResources();
+    WSACleanup();
+    GdiplusShutdown(g_gdiplusToken);
+    return (int)msg.wParam;
 }

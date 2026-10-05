@@ -9,7 +9,13 @@
 
 一个免费、开源、GPL-3.0 协议的桌面时间参考工具。连接多个国际可信 NTP 源，交叉验证，显示毫秒级精度时间。
 
-**服务范围**：全球 ｜ **当前版本**：2.8.0-rc1
+**服务范围**：全球 ｜ **当前版本**：Windows v1.1.0 · Linux v1.1.0
+
+**下载**
+- Windows: https://github.com/Colligatio-org/PrecisionClock/releases/tag/v1.1.0-win
+- Linux: https://github.com/Colligatio-org/PrecisionClock/releases/tag/v1.1.0-linux
+
+**版本沿革**：v2.8.0-rc1 → v1.0.0 → v1.0.1 → v1.1.0-linux / v1.1.0-win
 
 ### 功能
 
@@ -17,13 +23,18 @@
 - **精密模式**：精度 0.001 秒，强制多源交叉验证，失败即报错，绝不降级本地时间
 - **多源交叉验证**：主源 + 国际备源并发查询，取中位数
 - **时区支持**：中国、美国东部 / 中部 / 山地 / 太平洋、德国、日本、英国、国际
-- **夏令时**：通过 Windows 时区 API 自动处理
+- **夏令时**：通过 Windows 时区 API 自动处理（Linux 由系统时区数据库自动处理）
 - **5 种语言**：简体中文、繁體中文、English、Deutsch、日本語
 - **跟随系统主题**：浅色 / 深色自动切换
 - **桌面悬浮窗**：透明、圆角、模拟 Aero 玻璃质感
 - **托盘图标 + 右键菜单**
 - **单实例**：重复启动不会开新窗口
-- **单文件**：无运行时依赖，双击即用
+- **单文件**：Windows 版无运行时依赖；Linux 版为单文件 AppImage
+
+### 系统要求
+
+- **Windows**：Windows 10 / 11 x64，无运行时依赖
+- **Linux**：Linux x86_64，依赖系统 GTK3（Ubuntu 22.04+、Debian 12+、Fedora 38+ 均自带）。AppImage 不打包系统库，运行时依赖系统提供的 GTK3 及其他标准库。
 
 ### 时间源
 
@@ -71,7 +82,13 @@ Colligatio 开源项目。图标版权归 Colligatio，不随 GPL 自动授予�
 
 一個免費、開源、GPL-3.0 協議的桌面時間參考工具。連接多個國際可信 NTP 源，交叉驗證，顯示毫秒級精度時間。
 
-**服務範圍**：全球 ｜ **當前版本**：2.8.0-rc1
+**服務範圍**：全球 ｜ **當前版本**：Windows v1.1.0 · Linux v1.1.0
+
+**下載**
+- Windows: https://github.com/Colligatio-org/PrecisionClock/releases/tag/v1.1.0-win
+- Linux: https://github.com/Colligatio-org/PrecisionClock/releases/tag/v1.1.0-linux
+
+**版本沿革**：v2.8.0-rc1 → v1.0.0 → v1.0.1 → v1.1.0-linux / v1.1.0-win
 
 ### 功能
 
@@ -79,13 +96,18 @@ Colligatio 开源项目。图标版权归 Colligatio，不随 GPL 自动授予�
 - **精密模式**：精度 0.001 秒，強制多源交叉驗證，失敗即報錯，絕不降級本地時間
 - **多源交叉驗證**：主源 + 國際備源並發查詢，取中位數
 - **時區支持**：中國、美國東部 / 中部 / 山地 / 太平洋、德國、日本、英國、國際
-- **夏令時**：通過 Windows 時區 API 自動處理
+- **夏令時**：通過 Windows 時區 API 自動處理（Linux 由系統時區資料庫自動處理）
 - **5 種語言**：简体中文、繁體中文、English、Deutsch、日本語
 - **跟隨系統主題**：淺色 / 深色自動切換
 - **桌面懸浮窗**：透明、圓角、模擬 Aero 玻璃質感
 - **托盤圖標 + 右鍵菜單**
 - **單實例**：重複啟動不會開新窗口
-- **單文件**：無運行時依賴，雙擊即用
+- **單文件**：Windows 版無運行時依賴；Linux 版為單文件 AppImage
+
+### 系統要求
+
+- **Windows**：Windows 10 / 11 x64，無運行時依賴
+- **Linux**：Linux x86_64，依賴系統 GTK3（Ubuntu 22.04+、Debian 12+、Fedora 38+ 均自帶）。AppImage 不打包系統庫，運行時依賴系統提供的 GTK3 及其他標準庫。
 
 ### 時間源
 
@@ -133,7 +155,13 @@ Colligatio 開源項目。圖標版權歸 Colligatio，不隨 GPL 自動授予�
 
 A free, open-source, GPL-3.0 desktop time reference tool. Connects to multiple trusted NTP sources, cross-validates, displays millisecond precision time.
 
-**Service region**: Global | **Current version**: 2.8.0-rc1
+**Service region**: Global | **Current versions**: Windows v1.1.0 · Linux v1.1.0
+
+**Downloads**
+- Windows: https://github.com/Colligatio-org/PrecisionClock/releases/tag/v1.1.0-win
+- Linux: https://github.com/Colligatio-org/PrecisionClock/releases/tag/v1.1.0-linux
+
+**Version history**: v2.8.0-rc1 → v1.0.0 → v1.0.1 → v1.1.0-linux / v1.1.0-win
 
 ### Features
 
@@ -141,13 +169,18 @@ A free, open-source, GPL-3.0 desktop time reference tool. Connects to multiple t
 - **Precision mode**: 0.001-second precision, mandatory multi-source cross-validation, fails loudly, never falls back to local time
 - **Multi-source cross-validation**: primary + international fallbacks queried in parallel, median taken
 - **Time zones**: China, US Eastern / Central / Mountain / Pacific, Germany, Japan, UK, International
-- **DST**: automatic via Windows time zone API
+- **DST**: automatic via Windows time zone API (Linux: system tzdata)
 - **5 languages**: 简体中文, 繁體中文, English, Deutsch, 日本語
 - **System theme**: light / dark auto
 - **Floating window**: transparent, rounded, simulated Aero glass
 - **Tray icon + right-click menu**
 - **Single instance**: no duplicate windows
-- **Single file**: no runtime dependency, double-click to run
+- **Single file**: Windows build has no runtime dependency; Linux build is a single AppImage
+
+### System Requirements
+
+- **Windows**: Windows 10 / 11 x64, no runtime dependencies
+- **Linux**: Linux x86_64, requires system GTK3 (included in Ubuntu 22.04+, Debian 12+, Fedora 38+). The AppImage does not bundle system libraries. It relies on the system-provided GTK3 and other standard libraries at runtime.
 
 ### Time Sources
 
@@ -195,7 +228,13 @@ This tool is not code-signed. Windows may show "Unknown Publisher" on first run.
 
 Ein kostenloses, quelloffenes GPL-3.0-Zeitreferenztool für den Desktop. Verbindet sich mit mehreren vertrauenswürdigen NTP-Quellen, kreuzvalidiert, zeigt millisekundengenaue Zeit an.
 
-**Servicegebiet**: Global | **Aktuelle Version**: 2.8.0-rc1
+**Servicegebiet**: Global | **Aktuelle Versionen**: Windows v1.1.0 · Linux v1.1.0
+
+**Downloads**
+- Windows: https://github.com/Colligatio-org/PrecisionClock/releases/tag/v1.1.0-win
+- Linux: https://github.com/Colligatio-org/PrecisionClock/releases/tag/v1.1.0-linux
+
+**Versionsverlauf**: v2.8.0-rc1 → v1.0.0 → v1.0.1 → v1.1.0-linux / v1.1.0-win
 
 ### Funktionen
 
@@ -203,13 +242,18 @@ Ein kostenloses, quelloffenes GPL-3.0-Zeitreferenztool für den Desktop. Verbind
 - **Präzisionsmodus**: 0,001-Sekunden-Genauigkeit, obligatorische Kreuzvalidierung mehrerer Quellen, schlägt laut fehl, kein Rückfall auf lokale Zeit
 - **Kreuzvalidierung mehrerer Quellen**: Primärquelle + internationale Fallbacks parallel abgefragt, Median gebildet
 - **Zeitzonen**: China, USA Ost / Zentral / Mountain / Pazifik, Deutschland, Japan, UK, International
-- **Sommerzeit**: automatisch über Windows-Zeitzonen-API
+- **Sommerzeit**: automatisch über Windows-Zeitzonen-API (Linux: System-tzdata)
 - **5 Sprachen**: 简体中文, 繁體中文, English, Deutsch, 日本語
 - **Systemthema**: Hell / Dunkel automatisch
 - **Schwebendes Fenster**: transparent, abgerundet, simuliertes Aero-Glas
 - **Taskleistensymbol + Rechtsklickmenü**
 - **Einzelinstanz**: keine doppelten Fenster
-- **Einzelne Datei**: keine Laufzeitabhängigkeit, Doppelklick zum Ausführen
+- **Einzelne Datei**: Windows-Build ohne Laufzeitabhängigkeit; Linux-Build als einzelne AppImage
+
+### Systemanforderungen
+
+- **Windows**: Windows 10 / 11 x64, keine Laufzeitabhängigkeiten
+- **Linux**: Linux x86_64, erfordert System-GTK3 (in Ubuntu 22.04+, Debian 12+, Fedora 38+ enthalten). Die AppImage bündelt keine Systembibliotheken. Sie ist zur Laufzeit auf die vom System bereitgestellte GTK3 und andere Standardbibliotheken angewiesen.
 
 ### Zeitquellen
 
@@ -257,7 +301,13 @@ Dieses Tool ist nicht codesigniert. Windows zeigt beim ersten Ausführen möglic
 
 無料のオープンソース GPL-3.0 デスクトップ時刻参照ツール。複数の信頼できる NTP ソースに接続し、クロス検証し、ミリ秒精度の時刻を表示します。
 
-**サービス地域**：グローバル ｜ **現在のバージョン**：2.8.0-rc1
+**サービス地域**：グローバル ｜ **現在のバージョン**：Windows v1.1.0 · Linux v1.1.0
+
+**ダウンロード**
+- Windows: https://github.com/Colligatio-org/PrecisionClock/releases/tag/v1.1.0-win
+- Linux: https://github.com/Colligatio-org/PrecisionClock/releases/tag/v1.1.0-linux
+
+**バージョン履歴**：v2.8.0-rc1 → v1.0.0 → v1.0.1 → v1.1.0-linux / v1.1.0-win
 
 ### 機能
 
@@ -265,13 +315,18 @@ Dieses Tool ist nicht codesigniert. Windows zeigt beim ersten Ausführen möglic
 - **精密モード**：0.001秒精度、複数ソースのクロス検証必須、失敗時は大声でエラー、ローカル時刻へのフォールバックなし
 - **複数ソースのクロス検証**：プライマリ + 国際フォールバックを並列照会、中央値を取得
 - **タイムゾーン**：中国、米国東部 / 中部 / 山岳部 / 太平洋、ドイツ、日本、英国、国際
-- **夏時間**：Windows タイムゾーン API により自動処理
+- **夏時間**：Windows タイムゾーン API により自動処理（Linux はシステム tzdata による）
 - **5 言語**：简体中文, 繁體中文, English, Deutsch, 日本語
 - **システムテーマ**：ライト / ダーク自動
 - **フローティングウィンドウ**：透明、角丸、Aero ガラス風
 - **タスクトレイアイコン + 右クリックメニュー**
 - **単一インスタンス**：重複ウィンドウなし
-- **単一ファイル**：ランタイム依存なし、ダブルクリックで実行
+- **単一ファイル**：Windows 版はランタイム依存なし、Linux 版は単一 AppImage
+
+### システム要件
+
+- **Windows**：Windows 10 / 11 x64、ランタイム依存なし
+- **Linux**：Linux x86_64、システム GTK3 が必要（Ubuntu 22.04+、Debian 12+、Fedora 38+ に含まれる）。AppImage はシステムライブラリを同梱していません。実行時にシステム提供の GTK3 およびその他の標準ライブラリに依存します。
 
 ### 時刻ソース
 

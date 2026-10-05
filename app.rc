@@ -1,8 +1,8 @@
 IDI_ICON1 ICON "64x64.ico"
 
 1 VERSIONINFO
-FILEVERSION     1,0,1,0
-PRODUCTVERSION  1,0,1,0
+FILEVERSION     1,1,0,0
+PRODUCTVERSION  1,1,0,0
 FILEOS          0x40004
 FILETYPE        0x1
 BEGIN
@@ -12,12 +12,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName",      "Colligatio"
             VALUE "FileDescription",  "Precision Clock / æ´√‹ ±÷”"
-            VALUE "FileVersion",      "1.0.1"
+            VALUE "FileVersion",      "1.1.0"
             VALUE "InternalName",     "PrecisionClock"
             VALUE "LegalCopyright",   "Copyright (C) 2026 Colligatio. License: GPL-3.0."
             VALUE "OriginalFilename", "PrecisionClock.exe"
             VALUE "ProductName",      "Precision Clock"
-            VALUE "ProductVersion",   "1.0.1"
+            VALUE "ProductVersion",   "1.1.0"
         END
     END
     BLOCK "VarFileInfo"

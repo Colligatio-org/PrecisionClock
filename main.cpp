@@ -1,5 +1,5 @@
 // precision_clock.cpp
-// Precision Clock v1.0.1
+// Precision Clock v1.1.0
 // 精密时钟 / Precision Clock
 // Colligatio open-source project
 // Compile:
@@ -54,13 +54,13 @@ using namespace Gdiplus;
 #define IDM_EXIT         1004
 #define IDM_ABOUT        1005
 #define IDM_HOTKEY_INFO  1006
+#define IDM_HOUR_FORMAT  1007
 #define IDM_COUNTRY_BASE 1100
 #define IDM_LANG_BASE    1200
 
 #define MAX_NTP_SOURCES 4
 #define CROSS_VALIDATE_MAX_DIFF_MS 50ULL
 
-// 红绿灯（逻辑坐标）
 #define BTN_R 5.0f
 #define BTN_RED_X    255.0f
 #define BTN_YELLOW_X 270.0f
@@ -68,24 +68,16 @@ using namespace Gdiplus;
 #define BTN_CY       80.0f
 
 enum {
-    COUNTRY_CN = 0,
-    COUNTRY_US_EAST,
-    COUNTRY_US_CENTRAL,
-    COUNTRY_US_MOUNTAIN,
-    COUNTRY_US_PACIFIC,
-    COUNTRY_DE,
-    COUNTRY_JP,
-    COUNTRY_UK,
-    COUNTRY_INTL,
-    COUNTRY_COUNT
+    COUNTRY_CN = 0, COUNTRY_US_EAST, COUNTRY_US_CENTRAL, COUNTRY_US_MOUNTAIN,
+    COUNTRY_US_PACIFIC, COUNTRY_DE, COUNTRY_JP, COUNTRY_UK, COUNTRY_INTL, COUNTRY_COUNT
 };
 enum { LANG_CN = 0, LANG_TW, LANG_EN, LANG_DE, LANG_JP, LANG_COUNT };
 
 typedef enum { MODE_NORMAL = 0, MODE_EVIDENCE = 1 } ClockMode;
 
 // ---------------- 配置 ----------------
-typedef struct { int country; int language; } Config;
-static Config g_config = { COUNTRY_INTL, LANG_EN };
+typedef struct { int country; int language; int hour24; } Config;
+static Config g_config = { COUNTRY_INTL, LANG_EN, 1 };
 static wchar_t g_configPath[MAX_PATH] = {0};
 
 // ---------------- 语言包 ----------------
@@ -103,6 +95,7 @@ typedef struct {
     const wchar_t *menuSettings;
     const wchar_t *menuCountry;
     const wchar_t *menuLanguage;
+    const wchar_t *menuHourFormat;
     const wchar_t *menuHotkey;
     const wchar_t *menuDisclaimer;
     const wchar_t *menuAbout;
@@ -116,14 +109,15 @@ typedef struct {
 static const LangPack g_langCN = {
         L"精密时钟", L"正在切换精密时钟...", L"● 精密时钟｜%ls", L"已校时", L"未校时｜本地",
         L"切换失败：时间源不可达", L"源间分歧：时间差超过 50ms", L"单源可用｜未交叉验证",
-        L"切换精密时钟", L"重新校时", L"设置", L"国家 / 地区", L"语言", L"热键说明", L"免责声明", L"关于", L"退出",
+        L"切换精密时钟", L"重新校时", L"设置", L"国家 / 地区", L"语言", L"24 小时制", L"热键说明",
+        L"免责声明", L"关于", L"退出",
         L"免责声明",
         L"本软件仅作通用时间参考，严禁作为任何医疗、航空、金融交易、法律时效、军事指挥等关键系统的唯一或决定性时间源。因使用本软件、依赖其输出、或因其时间偏差/错误造成的任何直接或间接损失，作者及发布者概不承担任何责任。\n\n如需可信时间戳，请咨询当地可信时间戳服务提供商（TSA）。\n\n服务范围：全球。",
-        L"精密时钟 / Precision Clock\n版本 1.0.1\n\n"
+        L"精密时钟 / Precision Clock\n版本 1.1.0\n\n"
         L"Copyright (C) 2026 Colligatio\nLicense: GPL-3.0\n\n"
         L"一个免费、开源、GPL-3.0 协议的桌面时间参考工具。\n"
         L"连接多个国际可信 NTP 源，交叉验证，显示毫秒级精度时间。\n\n"
-        L"窗口位置记忆 / DPI 感知 / RTT 显示 / 全局热键\n\n"
+        L"窗口位置记忆 / DPI 感知 / RTT 显示 / 全局热键 / 12-24 小时制 / 上次校时\n\n"
         L"本软件仅作通用时间参考，严禁作为任何医疗、航空、金融交易、法律时效、军事指挥等关键系统的唯一或决定性时间源。\n"
         L"因使用本软件、依赖其输出、或因其时间偏差/错误造成的任何直接或间接损失，作者及发布者概不承担任何责任。\n\n"
         L"如需可信时间戳，请咨询当地可信时间戳服务提供商（TSA）。",
@@ -133,14 +127,15 @@ static const LangPack g_langCN = {
 static const LangPack g_langTW = {
         L"精密時鐘", L"正在切換精密時鐘...", L"● 精密時鐘｜%ls", L"已校時", L"未校時｜本地",
         L"切換失敗：時間源不可達", L"源間分歧：時間差超過 50ms", L"單源可用｜未交叉驗證",
-        L"切換精密時鐘", L"重新校時", L"設定", L"國家 / 地區", L"語言", L"熱鍵說明", L"免責聲明", L"關於", L"結束",
+        L"切換精密時鐘", L"重新校時", L"設定", L"國家 / 地區", L"語言", L"24 小時制", L"熱鍵說明",
+        L"免責聲明", L"關於", L"結束",
         L"免責聲明",
         L"本軟體僅作通用時間參考，嚴禁作為任何醫療、航空、金融交易、法律時效、軍事指揮等關鍵系統的唯一或決定性時間源。因使用本軟體、依賴其輸出、或因其時間偏差/錯誤造成的任何直接或間接損失，作者及發布者概不承擔任何責任。\n\n如需可信時間戳，請諮詢當地可信時間戳服務提供商（TSA）。\n\n服務範圍：全球。",
-        L"精密時鐘 / Precision Clock\n版本 1.0.1\n\n"
+        L"精密時鐘 / Precision Clock\n版本 1.1.0\n\n"
         L"Copyright (C) 2026 Colligatio\nLicense: GPL-3.0\n\n"
         L"一個免費、開源、GPL-3.0 協議的桌面時間參考工具。\n"
         L"連接多個國際可信 NTP 源，交叉驗證，顯示毫秒級精度時間。\n\n"
-        L"視窗位置記憶 / DPI 感知 / RTT 顯示 / 全域熱鍵\n\n"
+        L"視窗位置記憶 / DPI 感知 / RTT 顯示 / 全域熱鍵 / 12-24 小時制 / 上次校時\n\n"
         L"本軟體僅作通用時間參考，嚴禁作為任何醫療、航空、金融交易、法律時效、軍事指揮等關鍵系統的唯一或決定性時間源。\n"
         L"因使用本軟體、依賴其輸出、或因其時間偏差/錯誤造成的任何直接或間接損失，作者及發布者概不承擔任何責任。\n\n"
         L"如需可信時間戳，請諮詢當地可信時間戳服務提供商（TSA）。",
@@ -150,14 +145,15 @@ static const LangPack g_langTW = {
 static const LangPack g_langEN = {
         L"Precision Clock", L"Switching to Precision Clock...", L"● Precision Clock | %ls", L"Synced", L"Unsynced | Local",
         L"Sync failed: time source unreachable", L"Source conflict: time diff over 50ms", L"Single source | not cross-validated",
-        L"Toggle Precision Clock", L"Resync", L"Settings", L"Country / Region", L"Language", L"Hotkeys", L"Disclaimer", L"About", L"Exit",
+        L"Toggle Precision Clock", L"Resync", L"Settings", L"Country / Region", L"Language", L"24-hour format", L"Hotkeys",
+        L"Disclaimer", L"About", L"Exit",
         L"Disclaimer",
         L"This software is a general-purpose time reference only. It must not be used as the sole or decisive time source for any medical, aviation, financial trading, legal, military command, or other critical systems. The author and publisher assume no liability for any direct or indirect damages arising from the use of this software, reliance on its output, or any time deviation or error.\n\nFor trusted timestamps, consult a local TSA provider.\n\nService region: Global.",
-        L"Precision Clock\nVersion 1.0.1\n\n"
+        L"Precision Clock\nVersion 1.1.0\n\n"
         L"Copyright (C) 2026 Colligatio\nLicense: GPL-3.0\n\n"
         L"A free, open-source, GPL-3.0 time reference tool.\n"
         L"Connects to multiple trusted NTP sources, cross-validates, displays millisecond precision time.\n\n"
-        L"Window position memory / DPI aware / RTT display / Global hotkeys\n\n"
+        L"Window position memory / DPI aware / RTT display / Global hotkeys / 12-24 hour format / Last sync\n\n"
         L"This software is a general-purpose time reference only. It must not be used as the sole or decisive time source for any critical systems.\n"
         L"The author and publisher assume no liability for any direct or indirect damages arising from the use of this software, reliance on its output, or any time deviation or error.\n\n"
         L"For trusted timestamps, consult a local TSA provider.",
@@ -167,14 +163,15 @@ static const LangPack g_langEN = {
 static const LangPack g_langDE = {
         L"Präzisionsuhr", L"Wechsle zu Präzisionsuhr...", L"● Präzisionsuhr | %ls", L"Synchronisiert", L"Nicht synchron | Lokal",
         L"Sync fehlgeschlagen: Zeitquelle nicht erreichbar", L"Quellenkonflikt: Zeitdifferenz über 50ms", L"Einzelquelle | nicht kreuzvalidiert",
-        L"Präzisionsuhr umschalten", L"Neu synchronisieren", L"Einstellungen", L"Land / Region", L"Sprache", L"Tastenkürzel", L"Haftungsausschluss", L"Über", L"Beenden",
+        L"Präzisionsuhr umschalten", L"Neu synchronisieren", L"Einstellungen", L"Land / Region", L"Sprache", L"24-Stunden-Format", L"Tastenkürzel",
+        L"Haftungsausschluss", L"Über", L"Beenden",
         L"Haftungsausschluss",
         L"Diese Software dient nur als allgemeine Zeitreferenz. Sie darf nicht als einzige oder entscheidende Zeitquelle für medizinische, luftfahrttechnische, finanzielle, rechtliche, militärische oder andere kritische Systeme verwendet werden. Der Autor und Herausgeber übernimmt keine Haftung für direkte oder indirekte Schäden, die durch die Nutzung dieser Software, das Vertrauen auf ihre Ausgabe oder jegliche Zeitabweichung oder Fehler entstehen.\n\nFür vertrauenswürdige Zeitstempel wenden Sie sich bitte an einen lokalen TSA-Anbieter.\n\nServicegebiet: Global.",
-        L"Präzisionsuhr\nVersion 1.0.1\n\n"
+        L"Präzisionsuhr\nVersion 1.1.0\n\n"
         L"Copyright (C) 2026 Colligatio\nLizenz: GPL-3.0\n\n"
         L"Ein kostenloses, quelloffenes GPL-3.0-Zeitreferenztool.\n"
         L"Verbindet sich mit mehreren vertrauenswürdigen NTP-Quellen, kreuzvalidiert, zeigt millisekundengenaue Zeit an.\n\n"
-        L"Fensterpositionsspeicher / DPI-bewusst / RTT-Anzeige / Globale Hotkeys\n\n"
+        L"Fensterpositionsspeicher / DPI-bewusst / RTT-Anzeige / Globale Hotkeys / 12-24-Stunden-Format / Letzte Synchronisierung\n\n"
         L"Diese Software dient nur als allgemeine Zeitreferenz. Sie darf nicht als einzige oder entscheidende Zeitquelle für kritische Systeme verwendet werden.\n"
         L"Der Autor und Herausgeber übernimmt keine Haftung für direkte oder indirekte Schäden, die durch die Nutzung dieser Software, das Vertrauen auf ihre Ausgabe oder jegliche Zeitabweichung oder Fehler entstehen.\n\n"
         L"Für vertrauenswürdige Zeitstempel wenden Sie sich bitte an einen lokalen TSA-Anbieter.",
@@ -184,14 +181,15 @@ static const LangPack g_langDE = {
 static const LangPack g_langJP = {
         L"精密時計", L"精密時計に切り替え中...", L"● 精密時計 | %ls", L"同期済み", L"未同期 | ローカル",
         L"同期失敗：時刻ソースに到達できません", L"ソース競合：時刻差が50msを超えています", L"単一ソース | クロス検証なし",
-        L"精密時計の切替", L"再同期", L"設定", L"国 / 地域", L"言語", L"ショートカット", L"免責事項", L"バージョン情報", L"終了",
+        L"精密時計の切替", L"再同期", L"設定", L"国 / 地域", L"言語", L"24時間表示", L"ショートカット",
+        L"免責事項", L"バージョン情報", L"終了",
         L"免責事項",
         L"本ソフトウェアは一般的な時刻参照としてのみ提供されます。医療、航空、金融取引、法務、軍事指揮などの重要なシステムの唯一または決定的な時刻源として使用しないでください。本ソフトウェアの使用、その出力への依存、または時刻の偏差や誤りに起因する直接的または間接的な損害について、作者および発行者は一切の責任を負いません。\n\n信頼できるタイムスタンプについては、お住まいの地域のTSA提供者にお問い合わせください。\n\nサービス地域：グローバル。",
-        L"精密時計 / Precision Clock\nバージョン 1.0.1\n\n"
+        L"精密時計 / Precision Clock\nバージョン 1.1.0\n\n"
         L"Copyright (C) 2026 Colligatio\nライセンス: GPL-3.0\n\n"
         L"無料のオープンソース GPL-3.0 時刻参照ツール。\n"
         L"複数の信頼できる NTP ソースに接続し、クロス検証し、ミリ秒精度の時刻を表示します。\n\n"
-        L"ウィンドウ位置記憶 / DPI 対応 / RTT 表示 / グローバルホットキー\n\n"
+        L"ウィンドウ位置記憶 / DPI 対応 / RTT 表示 / グローバルホットキー / 12-24時間表示 / 前回同期時刻\n\n"
         L"本ソフトウェアは一般的な時刻参照としてのみ提供されます。重要なシステムの唯一または決定的な時刻源として使用しないでください。\n"
         L"本ソフトウェアの使用、その出力への依存、または時刻の偏差や誤りに起因する直接的または間接的な損害について、作者および発行者は一切の責任を負いません。\n\n"
         L"信頼できるタイムスタンプについては、お住まいの地域のTSA提供者にお問い合わせください。",
@@ -243,6 +241,7 @@ static BOOL      g_windowVisible = TRUE;
 static BOOL      g_showFailMsg   = FALSE;
 static BOOL      g_pendingResync = FALSE;
 static BOOL      g_normalSyncing = FALSE;
+static BOOL      g_24Hour        = TRUE;
 static int       g_hoverBtn      = 0;
 static POINT     g_dragAnchor = {0, 0};
 static DWORD     g_lastClick = 0;
@@ -250,13 +249,14 @@ static int       g_winX = 0, g_winY = 0;
 static int       g_ntpFailCount    = 0;
 static int       g_normalFailCount = 0;
 
-// DPI
 static int       g_dpiScale = 100;
 static int       g_physW    = CANVAS_W;
 static int       g_physH    = CANVAS_H;
 
-// RTT
 static ULONGLONG g_lastRttMs = 0;
+
+static SYSTEMTIME g_lastSyncTime;
+static BOOL       g_lastSyncValid = FALSE;
 
 static ULONGLONG g_baseTimeMs = 0;
 static LARGE_INTEGER g_qpcFreq, g_qpcBase;
@@ -303,6 +303,7 @@ static void ApplyNormalLocal(void);
 static void EnterPrecisionModeFromResult(int status, ULONGLONG ms);
 static BOOL IsSystemLightTheme(void);
 static void SaveConfig(void);
+static void GetDisplayTime(SYSTEMTIME *st);
 
 // ---------------- 语言 / 配置 ----------------
 static const LangPack* CurrentLang(void) {
@@ -354,6 +355,7 @@ static void LoadConfig(void) {
         g_config.country  = COUNTRY_INTL;
     }
 
+    g_config.hour24 = 1;
     g_winX = -1;
     g_winY = -1;
 
@@ -366,12 +368,15 @@ static void LoadConfig(void) {
             g_config.country = v;
         else if (sscanf(line, "language=%d", &v) == 1 && v >= 0 && v < LANG_COUNT)
             g_config.language = v;
+        else if (sscanf(line, "hour24=%d", &v) == 1)
+            g_config.hour24 = (v != 0);
         else if (sscanf(line, "winX=%d", &v) == 1)
             g_winX = v;
         else if (sscanf(line, "winY=%d", &v) == 1)
             g_winY = v;
     }
     fclose(f);
+    g_24Hour = (g_config.hour24 != 0);
 }
 
 static void SaveConfig(void) {
@@ -380,6 +385,7 @@ static void SaveConfig(void) {
     if (!f) return;
     fprintf(f, "country=%d\n", g_config.country);
     fprintf(f, "language=%d\n", g_config.language);
+    fprintf(f, "hour24=%d\n", g_24Hour ? 1 : 0);
     fprintf(f, "winX=%d\n", g_winX);
     fprintf(f, "winY=%d\n", g_winY);
     fclose(f);
@@ -790,18 +796,16 @@ static void BuildStatusW(wchar_t *buf, int cap) {
     if (g_mode == MODE_EVIDENCE) {
         if (g_ntpStatus == 1) {
             wcsncpy_s(buf, cap, g_lang->singleSourceWarn, _TRUNCATE);
-            return;
-        }
-        if (g_ntpStatus == 2) {
+        } else if (g_ntpStatus == 2) {
             wcsncpy_s(buf, cap, g_lang->sourceConflict, _TRUNCATE);
-            return;
+        } else {
+            wchar_t tmp[96];
+            swprintf_s(tmp, 96, g_lang->syncOn, g_lastSource);
+            wcsncpy_s(buf, cap, tmp, _TRUNCATE);
         }
-        wchar_t tmp[96];
-        swprintf_s(tmp, 96, g_lang->syncOn, g_lastSource);
-        wcsncpy_s(buf, cap, tmp, _TRUNCATE);
-        return;
+    } else {
+        wcsncpy_s(buf, cap, g_normalSynced ? g_lang->synced : g_lang->unsynced, _TRUNCATE);
     }
-    wcsncpy_s(buf, cap, g_normalSynced ? g_lang->synced : g_lang->unsynced, _TRUNCATE);
 }
 
 static void DrawTextsWithGDI(void) {
@@ -810,53 +814,86 @@ static void DrawTextsWithGDI(void) {
     g.SetTextRenderingHint(TextRenderingHintAntiAlias);
     g.SetSmoothingMode(SmoothingModeAntiAlias);
 
-    // 时间
+    // 时间（AM/PM 不显示在主时间区，挪到右下角）
     {
         SYSTEMTIME st;
         GetDisplayTime(&st);
         wchar_t timeBuf[32];
         if (g_mode == MODE_EVIDENCE) {
-            swprintf_s(timeBuf, 32, L"%02d:%02d:%02d.%03d", st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+            if (g_24Hour) {
+                swprintf_s(timeBuf, 32, L"%02d:%02d:%02d.%03d",
+                           st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+            } else {
+                int h = st.wHour % 12; if (h == 0) h = 12;
+                swprintf_s(timeBuf, 32, L"%d:%02d:%02d.%03d",
+                           h, st.wMinute, st.wSecond, st.wMilliseconds);
+            }
         } else {
-            swprintf_s(timeBuf, 32, L"%02d:%02d:%02d", st.wHour, st.wMinute, st.wSecond);
+            if (g_24Hour) {
+                swprintf_s(timeBuf, 32, L"%02d:%02d:%02d",
+                           st.wHour, st.wMinute, st.wSecond);
+            } else {
+                int h = st.wHour % 12; if (h == 0) h = 12;
+                swprintf_s(timeBuf, 32, L"%d:%02d:%02d",
+                           h, st.wMinute, st.wSecond);
+            }
         }
 
-        Font fontBig(L"Consolas", 28, FontStyleRegular, UnitPixel);
+        Font fontBig(L"Consolas", 25, FontStyleRegular, UnitPixel);
         SolidBrush brush(g_lightTheme ? Color(255, 0, 0, 0) : Color(255, 255, 255, 255));
-        RectF rc(66.0f, 16.0f, 200.0f, 34.0f);
+        RectF rc(66.0f, 16.0f, 220.0f, 34.0f);
         g.DrawString(timeBuf, -1, &fontBig, rc, NULL, &brush);
     }
 
-    // 状态
+    // 状态（宽度加大到 220）
     {
-        wchar_t status[128];
-        BuildStatusW(status, 128);
+        wchar_t status[160];
+        BuildStatusW(status, 160);
 
-        Font fontSmall(g_lang->fontStatus, 12, FontStyleRegular, UnitPixel);
+        Font fontSmall(g_lang->fontStatus, 11, FontStyleRegular, UnitPixel);
         SolidBrush brush(g_lightTheme ? Color(255, 0, 0, 0) : Color(255, 255, 255, 255));
-        RectF rc(66.0f, 54.0f, 184.0f, 20.0f);
+        RectF rc(66.0f, 54.0f, 220.0f, 20.0f);
         g.DrawString(status, -1, &fontSmall, rc, NULL, &brush);
     }
 
-    // RTT（红绿灯左侧，和红绿灯垂直居中）
-    if (g_lastRttMs > 0) {
-        wchar_t rttBuf[32];
-        swprintf_s(rttBuf, 32, L"RTT %llums", g_lastRttMs);
+    // 上次同步时间 + RTT（红绿灯左侧，右对齐）
+    {
+        wchar_t tailBuf[80] = {0};
 
-        Font fontRtt(g_lang->fontStatus, 10, FontStyleRegular, UnitPixel);
-        Color rttColor = (g_lastRttMs > 500)
-                         ? Color(255, 240, 140, 60)
-                         : (g_lightTheme ? Color(255, 0, 0, 0) : Color(255, 255, 255, 255));
-        SolidBrush rttBrush(rttColor);
+        if (g_lastSyncValid && (g_normalSynced || g_mode == MODE_EVIDENCE)) {
+            if (g_24Hour) {
+                swprintf_s(tailBuf, 80, L"%02d:%02d",
+                           g_lastSyncTime.wHour, g_lastSyncTime.wMinute);
+            } else {
+                int h = g_lastSyncTime.wHour % 12; if (h == 0) h = 12;
+                const wchar_t *ampm = (g_lastSyncTime.wHour < 12) ? L"AM" : L"PM";
+                swprintf_s(tailBuf, 80, L"%d:%02d %ls", h, g_lastSyncTime.wMinute, ampm);
+            }
+        }
 
-        StringFormat sfR;
-        sfR.SetAlignment(StringAlignmentFar);
+        if (g_lastRttMs > 0) {
+            wchar_t rttBuf[32];
+            swprintf_s(rttBuf, 32, L"RTT %llums", g_lastRttMs);
+            if (tailBuf[0]) wcsncat_s(tailBuf, 80, L"  ", _TRUNCATE);
+            wcsncat_s(tailBuf, 80, rttBuf, _TRUNCATE);
+        }
 
-        RectF rcRtt(140.0f, 73.0f, 100.0f, 13.0f);
-        g.DrawString(rttBuf, -1, &fontRtt, rcRtt, &sfR, &rttBrush);
+        if (tailBuf[0]) {
+            Font fontTail(g_lang->fontStatus, 10, FontStyleRegular, UnitPixel);
+            Color tailColor = (g_lastRttMs > 500)
+                              ? Color(255, 240, 140, 60)
+                              : (g_lightTheme ? Color(255, 0, 0, 0) : Color(255, 255, 255, 255));
+            SolidBrush tailBrush(tailColor);
+
+            StringFormat sfR;
+            sfR.SetAlignment(StringAlignmentFar);
+
+            RectF rcTail(90.0f, 73.0f, 150.0f, 13.0f);
+            g.DrawString(tailBuf, -1, &fontTail, rcTail, &sfR, &tailBrush);
+        }
     }
 
-    // 右下角红绿灯
+    // 红绿灯
     {
         float cy = BTN_CY;
         float r  = BTN_R;
@@ -943,6 +980,11 @@ static void ShowTrayMenu(void) {
         AppendMenuW(hLang, flags, IDM_LANG_BASE + i, g_langNames[i]);
     }
     AppendMenuW(hSettings, MF_POPUP, (UINT_PTR)hLang, L->menuLanguage);
+
+    UINT hourFlags = MF_STRING;
+    if (g_24Hour) hourFlags |= MF_CHECKED;
+    AppendMenuW(hSettings, hourFlags, IDM_HOUR_FORMAT, L->menuHourFormat);
+
     AppendMenuW(hSettings, MF_SEPARATOR, 0, NULL);
     AppendMenuW(hSettings, MF_STRING, IDM_HOTKEY_INFO, L->menuHotkey);
 
@@ -965,6 +1007,10 @@ static void ShowTrayMenu(void) {
     } else if (cmd == IDM_RESYNC) {
         if (g_mode == MODE_EVIDENCE) StartNtpTask(2);
         else                          StartNtpTask(0);
+    } else if (cmd == IDM_HOUR_FORMAT) {
+        g_24Hour = !g_24Hour;
+        SaveConfig();
+        Render();
     } else if (cmd == IDM_DISCLAIMER) {
         MessageBoxW(g_hwnd, L->disclaimerBody, L->disclaimerTitle, MB_OK | MB_ICONINFORMATION);
     } else if (cmd == IDM_ABOUT) {
@@ -1110,6 +1156,8 @@ g_baseTimeMs = ms;
 QueryPerformanceCounter(&g_qpcBase);
 g_normalSynced = TRUE;
 g_normalFailCount = 0;
+GetDisplayTime(&g_lastSyncTime);
+g_lastSyncValid = TRUE;
 } else {
 g_normalFailCount++;
 if (g_normalFailCount >= NORMAL_MAX_FAIL) {
@@ -1120,11 +1168,17 @@ g_switching = FALSE;
 g_normalSyncing = FALSE;
 } else if (g_ntpTask == 1) {
 EnterPrecisionModeFromResult(status, ms);
+if (status == 0 || status == 1) {
+GetDisplayTime(&g_lastSyncTime);
+g_lastSyncValid = TRUE;
+}
 } else if (g_ntpTask == 2) {
 if (status == 0 || status == 1) {
 g_baseTimeMs = ms;
 QueryPerformanceCounter(&g_qpcBase);
 g_ntpFailCount = 0;
+GetDisplayTime(&g_lastSyncTime);
+g_lastSyncValid = TRUE;
 KillTimer(hwnd, TIMER_RESYNC);
 SetTimer(hwnd, TIMER_RESYNC, EVIDENCE_RESYNC_MS, NULL);
 } else if (status == 2) {

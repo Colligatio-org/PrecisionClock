@@ -1,5 +1,5 @@
 // precision_clock.cpp
-// Precision Clock v1.1.0
+// Precision Clock v1.1.1
 // 精密时钟 / Precision Clock
 // Colligatio open-source project
 // Compile:
@@ -113,7 +113,7 @@ static const LangPack g_langCN = {
         L"免责声明", L"关于", L"退出",
         L"免责声明",
         L"本软件仅作通用时间参考，严禁作为任何医疗、航空、金融交易、法律时效、军事指挥等关键系统的唯一或决定性时间源。因使用本软件、依赖其输出、或因其时间偏差/错误造成的任何直接或间接损失，作者及发布者概不承担任何责任。\n\n如需可信时间戳，请咨询当地可信时间戳服务提供商（TSA）。\n\n服务范围：全球。",
-        L"精密时钟 / Precision Clock\n版本 1.1.0\n\n"
+        L"精密时钟 / Precision Clock\n版本 1.1.1\n\n"
         L"Copyright (C) 2026 Colligatio\nLicense: GPL-3.0\n\n"
         L"一个免费、开源、GPL-3.0 协议的桌面时间参考工具。\n"
         L"连接多个国际可信 NTP 源，交叉验证，显示毫秒级精度时间。\n\n"
@@ -131,7 +131,7 @@ static const LangPack g_langTW = {
         L"免責聲明", L"關於", L"結束",
         L"免責聲明",
         L"本軟體僅作通用時間參考，嚴禁作為任何醫療、航空、金融交易、法律時效、軍事指揮等關鍵系統的唯一或決定性時間源。因使用本軟體、依賴其輸出、或因其時間偏差/錯誤造成的任何直接或間接損失，作者及發布者概不承擔任何責任。\n\n如需可信時間戳，請諮詢當地可信時間戳服務提供商（TSA）。\n\n服務範圍：全球。",
-        L"精密時鐘 / Precision Clock\n版本 1.1.0\n\n"
+        L"精密時鐘 / Precision Clock\n版本 1.1.1\n\n"
         L"Copyright (C) 2026 Colligatio\nLicense: GPL-3.0\n\n"
         L"一個免費、開源、GPL-3.0 協議的桌面時間參考工具。\n"
         L"連接多個國際可信 NTP 源，交叉驗證，顯示毫秒級精度時間。\n\n"
@@ -149,7 +149,7 @@ static const LangPack g_langEN = {
         L"Disclaimer", L"About", L"Exit",
         L"Disclaimer",
         L"This software is a general-purpose time reference only. It must not be used as the sole or decisive time source for any medical, aviation, financial trading, legal, military command, or other critical systems. The author and publisher assume no liability for any direct or indirect damages arising from the use of this software, reliance on its output, or any time deviation or error.\n\nFor trusted timestamps, consult a local TSA provider.\n\nService region: Global.",
-        L"Precision Clock\nVersion 1.1.0\n\n"
+        L"Precision Clock\nVersion 1.1.1\n\n"
         L"Copyright (C) 2026 Colligatio\nLicense: GPL-3.0\n\n"
         L"A free, open-source, GPL-3.0 time reference tool.\n"
         L"Connects to multiple trusted NTP sources, cross-validates, displays millisecond precision time.\n\n"
@@ -167,7 +167,7 @@ static const LangPack g_langDE = {
         L"Haftungsausschluss", L"Über", L"Beenden",
         L"Haftungsausschluss",
         L"Diese Software dient nur als allgemeine Zeitreferenz. Sie darf nicht als einzige oder entscheidende Zeitquelle für medizinische, luftfahrttechnische, finanzielle, rechtliche, militärische oder andere kritische Systeme verwendet werden. Der Autor und Herausgeber übernimmt keine Haftung für direkte oder indirekte Schäden, die durch die Nutzung dieser Software, das Vertrauen auf ihre Ausgabe oder jegliche Zeitabweichung oder Fehler entstehen.\n\nFür vertrauenswürdige Zeitstempel wenden Sie sich bitte an einen lokalen TSA-Anbieter.\n\nServicegebiet: Global.",
-        L"Präzisionsuhr\nVersion 1.1.0\n\n"
+        L"Präzisionsuhr\nVersion 1.1.1\n\n"
         L"Copyright (C) 2026 Colligatio\nLizenz: GPL-3.0\n\n"
         L"Ein kostenloses, quelloffenes GPL-3.0-Zeitreferenztool.\n"
         L"Verbindet sich mit mehreren vertrauenswürdigen NTP-Quellen, kreuzvalidiert, zeigt millisekundengenaue Zeit an.\n\n"
@@ -185,7 +185,7 @@ static const LangPack g_langJP = {
         L"免責事項", L"バージョン情報", L"終了",
         L"免責事項",
         L"本ソフトウェアは一般的な時刻参照としてのみ提供されます。医療、航空、金融取引、法務、軍事指揮などの重要なシステムの唯一または決定的な時刻源として使用しないでください。本ソフトウェアの使用、その出力への依存、または時刻の偏差や誤りに起因する直接的または間接的な損害について、作者および発行者は一切の責任を負いません。\n\n信頼できるタイムスタンプについては、お住まいの地域のTSA提供者にお問い合わせください。\n\nサービス地域：グローバル。",
-        L"精密時計 / Precision Clock\nバージョン 1.1.0\n\n"
+        L"精密時計 / Precision Clock\nバージョン 1.1.1\n\n"
         L"Copyright (C) 2026 Colligatio\nライセンス: GPL-3.0\n\n"
         L"無料のオープンソース GPL-3.0 時刻参照ツール。\n"
         L"複数の信頼できる NTP ソースに接続し、クロス検証し、ミリ秒精度の時刻を表示します。\n\n"
@@ -814,7 +814,7 @@ static void DrawTextsWithGDI(void) {
     g.SetTextRenderingHint(TextRenderingHintAntiAlias);
     g.SetSmoothingMode(SmoothingModeAntiAlias);
 
-    // 时间（AM/PM 不显示在主时间区，挪到右下角）
+    // 时间
     {
         SYSTEMTIME st;
         GetDisplayTime(&st);
@@ -845,7 +845,7 @@ static void DrawTextsWithGDI(void) {
         g.DrawString(timeBuf, -1, &fontBig, rc, NULL, &brush);
     }
 
-    // 状态（宽度加大到 220）
+    // 状态
     {
         wchar_t status[160];
         BuildStatusW(status, 160);
@@ -860,14 +860,19 @@ static void DrawTextsWithGDI(void) {
     {
         wchar_t tailBuf[80] = {0};
 
-        if (g_lastSyncValid && (g_normalSynced || g_mode == MODE_EVIDENCE)) {
-            if (g_24Hour) {
-                swprintf_s(tailBuf, 80, L"%02d:%02d",
-                           g_lastSyncTime.wHour, g_lastSyncTime.wMinute);
+        if (g_normalSynced || g_mode == MODE_EVIDENCE) {
+            if (g_lastSyncValid) {
+                if (g_24Hour) {
+                    swprintf_s(tailBuf, 80, L"%02d:%02d",
+                               g_lastSyncTime.wHour, g_lastSyncTime.wMinute);
+                } else {
+                    int h = g_lastSyncTime.wHour % 12; if (h == 0) h = 12;
+                    const wchar_t *ampm = (g_lastSyncTime.wHour < 12) ? L"AM" : L"PM";
+                    swprintf_s(tailBuf, 80, L"%d:%02d %ls", h, g_lastSyncTime.wMinute, ampm);
+                }
             } else {
-                int h = g_lastSyncTime.wHour % 12; if (h == 0) h = 12;
-                const wchar_t *ampm = (g_lastSyncTime.wHour < 12) ? L"AM" : L"PM";
-                swprintf_s(tailBuf, 80, L"%d:%02d %ls", h, g_lastSyncTime.wMinute, ampm);
+                // 首启占位
+                swprintf_s(tailBuf, 80, L"--:--");
             }
         }
 
@@ -880,8 +885,9 @@ static void DrawTextsWithGDI(void) {
 
         if (tailBuf[0]) {
             Font fontTail(g_lang->fontStatus, 10, FontStyleRegular, UnitPixel);
+            // RTT > 500ms 时使用更亮的橙色 (255, 165, 0)
             Color tailColor = (g_lastRttMs > 500)
-                              ? Color(255, 240, 140, 60)
+                              ? Color(255, 255, 165, 0)
                               : (g_lightTheme ? Color(255, 0, 0, 0) : Color(255, 255, 255, 255));
             SolidBrush tailBrush(tailColor);
 
@@ -1054,6 +1060,9 @@ static void ShowTrayMenu(void) {
             g_lang = CurrentLang();
             SaveConfig();
             Render();
+            // 强制 Windows 立即重绘，修复切换语言后状态栏延迟刷新
+            InvalidateRect(g_hwnd, NULL, TRUE);
+            UpdateWindow(g_hwnd);
         }
     }
 }

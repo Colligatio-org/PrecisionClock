@@ -1,5 +1,5 @@
 // precision_clock_linux.c
-// Precision Clock Linux v1.1.0
+// Precision Clock Linux v1.1.1
 // 精密时钟 Linux 版 / Precision Clock for Linux
 // Colligatio open-source project
 // License: GPL-3.0
@@ -80,7 +80,7 @@ static const LangPack L_CN = {
     "切换精密时钟", "重新校时", "国家 / 地区", "语言", "免责声明", "关于", "退出",
     "免责声明",
     "本软件仅作通用时间参考，严禁作为任何医疗、航空、金融交易、法律时效、军事指挥等关键系统的唯一或决定性时间源。",
-    "精密时钟 / Precision Clock\n版本 1.1.0\n\nCopyright (C) 2026 Colligatio\nLicense: GPL-3.0",
+    "精密时钟 / Precision Clock\n版本 1.1.1\n\nCopyright (C) 2026 Colligatio\nLicense: GPL-3.0",
     "Noto Sans CJK SC"
 };
 
@@ -90,7 +90,7 @@ static const LangPack L_TW = {
     "切換精密時鐘", "重新校時", "國家 / 地區", "語言", "免責聲明", "關於", "結束",
     "免責聲明",
     "本軟體僅作通用時間參考，嚴禁作為任何醫療、航空、金融交易、法律時效、軍事指揮等關鍵系統的唯一或決定性時間源。",
-    "精密時鐘 / Precision Clock\n版本 1.1.0\n\nCopyright (C) 2026 Colligatio\nLicense: GPL-3.0",
+    "精密時鐘 / Precision Clock\n版本 1.1.1\n\nCopyright (C) 2026 Colligatio\nLicense: GPL-3.0",
     "Noto Sans CJK SC"
 };
 
@@ -100,7 +100,7 @@ static const LangPack L_EN = {
     "Toggle Precision Clock", "Resync", "Country / Region", "Language", "Disclaimer", "About", "Exit",
     "Disclaimer",
     "This software is a general-purpose time reference only.",
-    "Precision Clock\nVersion 1.1.0\n\nCopyright (C) 2026 Colligatio\nLicense: GPL-3.0",
+    "Precision Clock\nVersion 1.1.1\n\nCopyright (C) 2026 Colligatio\nLicense: GPL-3.0",
     "Noto Sans CJK SC"
 };
 
@@ -110,7 +110,7 @@ static const LangPack L_DE = {
     "Präzisionsuhr umschalten", "Neu synchronisieren", "Land / Region", "Sprache", "Haftungsausschluss", "Über", "Beenden",
     "Haftungsausschluss",
     "Diese Software dient nur als allgemeine Zeitreferenz.",
-    "Präzisionsuhr\nVersion 1.1.0\n\nCopyright (C) 2026 Colligatio\nLizenz: GPL-3.0",
+    "Präzisionsuhr\nVersion 1.1.1\n\nCopyright (C) 2026 Colligatio\nLizenz: GPL-3.0",
     "Noto Sans CJK SC"
 };
 
@@ -120,7 +120,7 @@ static const LangPack L_JP = {
     "精密時計の切替", "再同期", "国 / 地域", "言語", "免責事項", "バージョン情報", "終了",
     "免責事項",
     "本ソフトウェアは一般的な時刻参照としてのみ提供されます。",
-    "精密時計 / Precision Clock\nバージョン 1.1.0\n\nCopyright (C) 2026 Colligatio\nライセンス: GPL-3.0",
+    "精密時計 / Precision Clock\nバージョン 1.1.1\n\nCopyright (C) 2026 Colligatio\nライセンス: GPL-3.0",
     "Noto Sans CJK SC"
 };
 
@@ -147,6 +147,9 @@ static guint64    g_lastRttMs = 0;
 static volatile int g_ntpPending = 0;
 static volatile int g_pendingToggle = 0;
 
+static time_t     g_lastSyncTime;
+static gboolean   g_lastSyncValid = FALSE;
+
 #ifdef HAVE_APPINDICATOR
 static AppIndicator *g_indicator = NULL;
 static GtkWidget     *g_tray_menu = NULL;
@@ -169,7 +172,6 @@ extern unsigned int precision_clock_png_len;
 static char g_font_tmp_path[256] = {0};
 static char g_icon_tmp_path[256] = {0};
 
-// ---------- 内嵌字体注册 ----------
 static void register_embedded_font(void) {
     const char *rt = getenv("XDG_RUNTIME_DIR");
     if (rt && rt[0])
@@ -188,7 +190,6 @@ static void register_embedded_font(void) {
     FcConfigAppFontAddFile(cfg, (const FcChar8 *)g_font_tmp_path);
 }
 
-// ---------- 内嵌图标注册 ----------
 static void register_embedded_icon(void) {
     const char *rt = getenv("XDG_RUNTIME_DIR");
     if (rt && rt[0])
@@ -204,7 +205,6 @@ static void register_embedded_icon(void) {
     fclose(f);
 }
 
-// ---------- 单实例锁 ----------
 static gboolean acquire_single_instance(void) {
     const char *home = getenv("HOME");
     if (!home) return TRUE;
@@ -596,7 +596,7 @@ static gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
         snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d:%02d", tm.tm_hour, tm.tm_min, tm.tm_sec);
 
     cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-    cairo_set_font_size(cr, 28);
+    cairo_set_font_size(cr, 25);
     cairo_set_source_rgba(cr, g_darkTheme ? 1 : 0, g_darkTheme ? 1 : 0, g_darkTheme ? 1 : 0, 1);
     cairo_move_to(cr, 66, 42);
     cairo_show_text(cr, timeBuf);
@@ -604,27 +604,47 @@ static gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
     char status[160];
     build_status(status, sizeof(status));
     cairo_select_font_face(cr, g_lang->fontStatus, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-    cairo_set_font_size(cr, 12);
+    cairo_set_font_size(cr, 11);
     cairo_set_source_rgba(cr, g_darkTheme ? 1 : 0, g_darkTheme ? 1 : 0, g_darkTheme ? 1 : 0, 1);
     cairo_move_to(cr, 66, 68);
     cairo_show_text(cr, status);
 
-    if (g_lastRttMs > 0) {
-        char rttBuf[32];
-        snprintf(rttBuf, sizeof(rttBuf), "RTT %llums", (unsigned long long)g_lastRttMs);
+    // 上次同步时间 + RTT（红绿灯左侧，右对齐）
+    {
+        char tailBuf[80] = {0};
 
-        cairo_select_font_face(cr, g_lang->fontStatus, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-        cairo_set_font_size(cr, 10);
-        cairo_text_extents_t ext;
-        cairo_text_extents(cr, rttBuf, &ext);
-        double rtt_x = 240.0 - ext.width;
-        double rtt_y = BTN_CY + ext.height / 2.0;
+        if (g_normalSynced || g_mode == MODE_EVIDENCE) {
+            if (g_lastSyncValid) {
+                struct tm syncTm;
+                localtime_r(&g_lastSyncTime, &syncTm);
+                snprintf(tailBuf, sizeof(tailBuf), "%02d:%02d", syncTm.tm_hour, syncTm.tm_min);
+            } else {
+                snprintf(tailBuf, sizeof(tailBuf), "--:--");
+            }
+        }
 
-        if (g_lastRttMs > 500) cairo_set_source_rgb(cr, 240/255.0, 140/255.0, 60/255.0);
-        else cairo_set_source_rgba(cr, g_darkTheme ? 1 : 0, g_darkTheme ? 1 : 0, g_darkTheme ? 1 : 0, 1);
+        if (g_lastRttMs > 0) {
+            char rttBuf[32];
+            snprintf(rttBuf, sizeof(rttBuf), "RTT %llums", (unsigned long long)g_lastRttMs);
+            if (tailBuf[0]) strncat(tailBuf, "  ", sizeof(tailBuf) - strlen(tailBuf) - 1);
+            strncat(tailBuf, rttBuf, sizeof(tailBuf) - strlen(tailBuf) - 1);
+        }
 
-        cairo_move_to(cr, rtt_x, rtt_y);
-        cairo_show_text(cr, rttBuf);
+        if (tailBuf[0]) {
+            cairo_select_font_face(cr, g_lang->fontStatus, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+            cairo_set_font_size(cr, 10);
+            cairo_text_extents_t ext;
+            cairo_text_extents(cr, tailBuf, &ext);
+            double rtt_x = 240.0 - ext.width;
+            double rtt_y = BTN_CY + ext.height / 2.0;
+
+            // RTT > 500ms 时使用更亮的橙色 (255, 165, 0)
+            if (g_lastRttMs > 500) cairo_set_source_rgb(cr, 255/255.0, 165/255.0, 0/255.0);
+            else cairo_set_source_rgba(cr, g_darkTheme ? 1 : 0, g_darkTheme ? 1 : 0, g_darkTheme ? 1 : 0, 1);
+
+            cairo_move_to(cr, rtt_x, rtt_y);
+            cairo_show_text(cr, tailBuf);
+        }
     }
 
     double cy = BTN_CY, r = BTN_R;
@@ -707,7 +727,8 @@ static void on_menu_lang(GtkMenuItem *item, gpointer data) {
     int idx = GPOINTER_TO_INT(data);
     if (idx == g_config.language) return;
     g_config.language = idx; g_lang = current_lang();
-    save_config(); gtk_widget_queue_draw(g_window);
+    save_config();
+    gtk_widget_queue_draw(g_window);
 #ifdef HAVE_APPINDICATOR
     rebuild_tray_menu();
 #endif
@@ -742,11 +763,10 @@ static GtkWidget *build_context_menu(void) {
 
     GtkWidget *it_country = gtk_menu_item_new_with_label(g_lang->menuCountry);
     GtkWidget *sub_country = gtk_menu_new();
-    GSList *grp_c = NULL;
     for (int i = 0; i < COUNTRY_COUNT; i++) {
-        GtkWidget *it = gtk_radio_menu_item_new_with_label(grp_c, COUNTRY_NAMES_L10N[i][g_config.language]);
-        grp_c = gtk_radio_menu_item_get_group(GTK_RADIO_MENU_ITEM(it));
-        gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(it), i == g_config.country);
+        char label[128];
+        snprintf(label, sizeof(label), "%s %s", (i == g_config.country) ? "[*]" : "[ ]", COUNTRY_NAMES_L10N[i][g_config.language]);
+        GtkWidget *it = gtk_menu_item_new_with_label(label);
         g_signal_connect(it, "activate", G_CALLBACK(on_menu_country), GINT_TO_POINTER(i));
         gtk_menu_shell_append(GTK_MENU_SHELL(sub_country), it);
     }
@@ -754,11 +774,10 @@ static GtkWidget *build_context_menu(void) {
 
     GtkWidget *it_lang = gtk_menu_item_new_with_label(g_lang->menuLanguage);
     GtkWidget *sub_lang = gtk_menu_new();
-    GSList *grp_l = NULL;
     for (int i = 0; i < LANG_COUNT; i++) {
-        GtkWidget *it = gtk_radio_menu_item_new_with_label(grp_l, LANG_NAMES[i]);
-        grp_l = gtk_radio_menu_item_get_group(GTK_RADIO_MENU_ITEM(it));
-        gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(it), i == g_config.language);
+        char label[64];
+        snprintf(label, sizeof(label), "%s %s", (i == g_config.language) ? "[*]" : "[ ]", LANG_NAMES[i]);
+        GtkWidget *it = gtk_menu_item_new_with_label(label);
         g_signal_connect(it, "activate", G_CALLBACK(on_menu_lang), GINT_TO_POINTER(i));
         gtk_menu_shell_append(GTK_MENU_SHELL(sub_lang), it);
     }
@@ -801,8 +820,6 @@ static void rebuild_tray_menu(void) {
     GtkWidget *new_menu = build_context_menu();
     gtk_widget_show_all(new_menu);
     app_indicator_set_menu(g_indicator, GTK_MENU(new_menu));
-    if (g_tray_menu && GTK_IS_WIDGET(g_tray_menu)) {
-    }
     g_tray_menu = new_menu;
 }
 
@@ -882,6 +899,8 @@ static void apply_ntp_result(guint64 ms) {
     if (diff > (gint64)MAX_ACCEPT_DIFF_MS) return;
     g_baseTimeMs = ms;
     clock_gettime(CLOCK_MONOTONIC, &g_baseTs);
+    g_lastSyncTime = time(NULL);
+    g_lastSyncValid = TRUE;
 }
 
 static gboolean ntp_done_idle(gpointer data) {
@@ -962,8 +981,7 @@ int main(int argc, char *argv[]) {
     g_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(g_window), g_lang->wndTitle);
     if (g_icon_tmp_path[0]) {
-        gtk_window_set_icon_from_file(GTK_WINDOW(g_window),
-            g_icon_tmp_path, NULL);
+        gtk_window_set_icon_from_file(GTK_WINDOW(g_window), g_icon_tmp_path, NULL);
     }
     gtk_window_set_default_size(GTK_WINDOW(g_window), CANVAS_W, CANVAS_H);
     gtk_window_set_decorated(GTK_WINDOW(g_window), FALSE);

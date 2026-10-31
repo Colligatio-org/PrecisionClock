@@ -1,5 +1,5 @@
 // precision_clock.cpp
-// Precision Clock v1.1.2
+// Precision Clock v1.2.0
 // 精密时钟 / Precision Clock
 // Colligatio open-source project
 // Compile:
@@ -22,7 +22,7 @@
 using namespace Gdiplus;
 
 // ---------------- 常量 ----------------
-#define NTP_TIMEOUT_MS        800   // 从 1500 缩短到 800，解决同步过慢问题
+#define NTP_TIMEOUT_MS        800
 #define EVIDENCE_RESYNC_MS    30000
 #define NTP_TO_UNIX_SEC       2208988800ULL
 #define FILETIME_TO_UNIX      11644473600000ULL
@@ -55,6 +55,7 @@ using namespace Gdiplus;
 #define IDM_ABOUT        1005
 #define IDM_HOTKEY_INFO  1006
 #define IDM_HOUR_FORMAT  1007
+#define IDM_OPEN_LOG     1008
 #define IDM_COUNTRY_BASE 1100
 #define IDM_LANG_BASE    1200
 
@@ -97,6 +98,7 @@ typedef struct {
     const wchar_t *menuLanguage;
     const wchar_t *menuHourFormat;
     const wchar_t *menuHotkey;
+    const wchar_t *menuOpenLog;
     const wchar_t *menuDisclaimer;
     const wchar_t *menuAbout;
     const wchar_t *menuExit;
@@ -109,15 +111,15 @@ typedef struct {
 static const LangPack g_langCN = {
         L"精密时钟", L"正在切换精密时钟...", L"● 精密时钟｜%ls", L"已校时", L"未校时｜本地",
         L"切换失败：时间源不可达", L"源间分歧：时间差超过 50ms", L"单源可用｜未交叉验证",
-        L"切换精密时钟", L"重新校时", L"设置", L"国家 / 地区", L"语言", L"24 小时制", L"热键说明",
+        L"切换精密时钟", L"重新校时", L"设置", L"国家 / 地区", L"语言", L"24 小时制", L"热键说明", L"打开校时日志",
         L"免责声明", L"关于", L"退出",
         L"免责声明",
         L"本软件仅作通用时间参考，严禁作为任何医疗、航空、金融交易、法律时效、军事指挥等关键系统的唯一或决定性时间源。因使用本软件、依赖其输出、或因其时间偏差/错误造成的任何直接或间接损失，作者及发布者概不承担任何责任。\n\n如需可信时间戳，请咨询当地可信时间戳服务提供商（TSA）。\n\n服务范围：全球。",
-        L"精密时钟 / Precision Clock\n版本 1.1.2\n\n"
+        L"精密时钟 / Precision Clock\n版本 1.2.0\n\n"
         L"Copyright (C) 2026 Colligatio\nLicense: GPL-3.0\n\n"
         L"一个免费、开源、GPL-3.0 协议的桌面时间参考工具。\n"
         L"连接多个国际可信 NTP 源，交叉验证，显示毫秒级精度时间。\n\n"
-        L"窗口位置记忆 / DPI 感知 / RTT 显示 / 全局热键 / 12-24 小时制 / 上次校时\n\n"
+        L"窗口位置记忆 / DPI 感知 / RTT 显示 / 全局热键 / 12-24 小时制 / 上次校时 / NTP 偏差日志\n\n"
         L"本软件仅作通用时间参考，严禁作为任何医疗、航空、金融交易、法律时效、军事指挥等关键系统的唯一或决定性时间源。\n"
         L"因使用本软件、依赖其输出、或因其时间偏差/错误造成的任何直接或间接损失，作者及发布者概不承担任何责任。\n\n"
         L"如需可信时间戳，请咨询当地可信时间戳服务提供商（TSA）。",
@@ -127,15 +129,15 @@ static const LangPack g_langCN = {
 static const LangPack g_langTW = {
         L"精密時鐘", L"正在切換精密時鐘...", L"● 精密時鐘｜%ls", L"已校時", L"未校時｜本地",
         L"切換失敗：時間源不可達", L"源間分歧：時間差超過 50ms", L"單源可用｜未交叉驗證",
-        L"切換精密時鐘", L"重新校時", L"設定", L"國家 / 地區", L"語言", L"24 小時制", L"熱鍵說明",
+        L"切換精密時鐘", L"重新校時", L"設定", L"國家 / 地區", L"語言", L"24 小時制", L"熱鍵說明", L"開啟校時日誌",
         L"免責聲明", L"關於", L"結束",
         L"免責聲明",
         L"本軟體僅作通用時間參考，嚴禁作為任何醫療、航空、金融交易、法律時效、軍事指揮等關鍵系統的唯一或決定性時間源。因使用本軟體、依賴其輸出、或因其時間偏差/錯誤造成的任何直接或間接損失，作者及發布者概不承擔任何責任。\n\n如需可信時間戳，請諮詢當地可信時間戳服務提供商（TSA）。\n\n服務範圍：全球。",
-        L"精密時鐘 / Precision Clock\n版本 1.1.2\n\n"
+        L"精密時鐘 / Precision Clock\n版本 1.2.0\n\n"
         L"Copyright (C) 2026 Colligatio\nLicense: GPL-3.0\n\n"
         L"一個免費、開源、GPL-3.0 協議的桌面時間參考工具。\n"
         L"連接多個國際可信 NTP 源，交叉驗證，顯示毫秒級精度時間。\n\n"
-        L"視窗位置記憶 / DPI 感知 / RTT 顯示 / 全域熱鍵 / 12-24 小時制 / 上次校時\n\n"
+        L"視窗位置記憶 / DPI 感知 / RTT 顯示 / 全域熱鍵 / 12-24 小時制 / 上次校時 / NTP 偏差日誌\n\n"
         L"本軟體僅作通用時間參考，嚴禁作為任何醫療、航空、金融交易、法律時效、軍事指揮等關鍵系統的唯一或決定性時間源。\n"
         L"因使用本軟體、依賴其輸出、或因其時間偏差/錯誤造成的任何直接或間接損失，作者及發布者概不承擔任何責任。\n\n"
         L"如需可信時間戳，請諮詢當地可信時間戳服務提供商（TSA）。",
@@ -145,15 +147,15 @@ static const LangPack g_langTW = {
 static const LangPack g_langEN = {
         L"Precision Clock", L"Switching to Precision Clock...", L"● Precision Clock | %ls", L"Synced", L"Unsynced | Local",
         L"Sync failed: time source unreachable", L"Source conflict: time diff over 50ms", L"Single source | not cross-validated",
-        L"Toggle Precision Clock", L"Resync", L"Settings", L"Country / Region", L"Language", L"24-hour format", L"Hotkeys",
+        L"Toggle Precision Clock", L"Resync", L"Settings", L"Country / Region", L"Language", L"24-hour format", L"Hotkeys", L"Open Sync Log",
         L"Disclaimer", L"About", L"Exit",
         L"Disclaimer",
         L"This software is a general-purpose time reference only. It must not be used as the sole or decisive time source for any medical, aviation, financial trading, legal, military command, or other critical systems. The author and publisher assume no liability for any direct or indirect damages arising from the use of this software, reliance on its output, or any time deviation or error.\n\nFor trusted timestamps, consult a local TSA provider.\n\nService region: Global.",
-        L"Precision Clock\nVersion 1.1.2\n\n"
+        L"Precision Clock\nVersion 1.2.0\n\n"
         L"Copyright (C) 2026 Colligatio\nLicense: GPL-3.0\n\n"
         L"A free, open-source, GPL-3.0 time reference tool.\n"
         L"Connects to multiple trusted NTP sources, cross-validates, displays millisecond precision time.\n\n"
-        L"Window position memory / DPI aware / RTT display / Global hotkeys / 12-24 hour format / Last sync\n\n"
+        L"Window position memory / DPI aware / RTT display / Global hotkeys / 12-24 hour format / Last sync / NTP offset log\n\n"
         L"This software is a general-purpose time reference only. It must not be used as the sole or decisive time source for any critical systems.\n"
         L"The author and publisher assume no liability for any direct or indirect damages arising from the use of this software, reliance on its output, or any time deviation or error.\n\n"
         L"For trusted timestamps, consult a local TSA provider.",
@@ -163,15 +165,15 @@ static const LangPack g_langEN = {
 static const LangPack g_langDE = {
         L"Präzisionsuhr", L"Wechsle zu Präzisionsuhr...", L"● Präzisionsuhr | %ls", L"Synchronisiert", L"Nicht synchron | Lokal",
         L"Sync fehlgeschlagen: Zeitquelle nicht erreichbar", L"Quellenkonflikt: Zeitdifferenz über 50ms", L"Einzelquelle | nicht kreuzvalidiert",
-        L"Präzisionsuhr umschalten", L"Neu synchronisieren", L"Einstellungen", L"Land / Region", L"Sprache", L"24-Stunden-Format", L"Tastenkürzel",
+        L"Präzisionsuhr umschalten", L"Neu synchronisieren", L"Einstellungen", L"Land / Region", L"Sprache", L"24-Stunden-Format", L"Tastenkürzel", L"Sync-Protokoll öffnen",
         L"Haftungsausschluss", L"Über", L"Beenden",
         L"Haftungsausschluss",
         L"Diese Software dient nur als allgemeine Zeitreferenz. Sie darf nicht als einzige oder entscheidende Zeitquelle für medizinische, luftfahrttechnische, finanzielle, rechtliche, militärische oder andere kritische Systeme verwendet werden. Der Autor und Herausgeber übernimmt keine Haftung für direkte oder indirekte Schäden, die durch die Nutzung dieser Software, das Vertrauen auf ihre Ausgabe oder jegliche Zeitabweichung oder Fehler entstehen.\n\nFür vertrauenswürdige Zeitstempel wenden Sie sich bitte an einen lokalen TSA-Anbieter.\n\nServicegebiet: Global.",
-        L"Präzisionsuhr\nVersion 1.1.2\n\n"
+        L"Präzisionsuhr\nVersion 1.2.0\n\n"
         L"Copyright (C) 2026 Colligatio\nLizenz: GPL-3.0\n\n"
         L"Ein kostenloses, quelloffenes GPL-3.0-Zeitreferenztool.\n"
         L"Verbindet sich mit mehreren vertrauenswürdigen NTP-Quellen, kreuzvalidiert, zeigt millisekundengenaue Zeit an.\n\n"
-        L"Fensterpositionsspeicher / DPI-bewusst / RTT-Anzeige / Globale Hotkeys / 12-24-Stunden-Format / Letzte Synchronisierung\n\n"
+        L"Fensterpositionsspeicher / DPI-bewusst / RTT-Anzeige / Globale Hotkeys / 12-24-Stunden-Format / Letzte Synchronisierung / NTP-Offset-Protokoll\n\n"
         L"Diese Software dient nur als allgemeine Zeitreferenz. Sie darf nicht als einzige oder entscheidende Zeitquelle für kritische Systeme verwendet werden.\n"
         L"Der Autor und Herausgeber übernimmt keine Haftung für direkte oder indirekte Schäden, die durch die Nutzung dieser Software, das Vertrauen auf ihre Ausgabe oder jegliche Zeitabweichung oder Fehler entstehen.\n\n"
         L"Für vertrauenswürdige Zeitstempel wenden Sie sich bitte an einen lokalen TSA-Anbieter.",
@@ -181,15 +183,15 @@ static const LangPack g_langDE = {
 static const LangPack g_langJP = {
         L"精密時計", L"精密時計に切り替え中...", L"● 精密時計 | %ls", L"同期済み", L"未同期 | ローカル",
         L"同期失敗：時刻ソースに到達できません", L"ソース競合：時刻差が50msを超えています", L"単一ソース | クロス検証なし",
-        L"精密時計の切替", L"再同期", L"設定", L"国 / 地域", L"言語", L"24時間表示", L"ショートカット",
+        L"精密時計の切替", L"再同期", L"設定", L"国 / 地域", L"言語", L"24時間表示", L"ショートカット", L"同期ログを開く",
         L"免責事項", L"バージョン情報", L"終了",
         L"免責事項",
         L"本ソフトウェアは一般的な時刻参照としてのみ提供されます。医療、航空、金融取引、法務、軍事指揮などの重要なシステムの唯一または決定的な時刻源として使用しないでください。本ソフトウェアの使用、その出力への依存、または時刻の偏差や誤りに起因する直接的または間接的な損害について、作者および発行者は一切の責任を負いません。\n\n信頼できるタイムスタンプについては、お住まいの地域のTSA提供者にお問い合わせください。\n\nサービス地域：グローバル。",
-        L"精密時計 / Precision Clock\nバージョン 1.1.2\n\n"
+        L"精密時計 / Precision Clock\nバージョン 1.2.0\n\n"
         L"Copyright (C) 2026 Colligatio\nライセンス: GPL-3.0\n\n"
         L"無料のオープンソース GPL-3.0 時刻参照ツール。\n"
         L"複数の信頼できる NTP ソースに接続し、クロス検証し、ミリ秒精度の時刻を表示します。\n\n"
-        L"ウィンドウ位置記憶 / DPI 対応 / RTT 表示 / グローバルホットキー / 12-24時間表示 / 前回同期時刻\n\n"
+        L"ウィンドウ位置記憶 / DPI 対応 / RTT 表示 / グローバルホットキー / 12-24時間表示 / 前回同期時刻 / NTP オフセットログ\n\n"
         L"本ソフトウェアは一般的な時刻参照としてのみ提供されます。重要なシステムの唯一または決定的な時刻源として使用しないでください。\n"
         L"本ソフトウェアの使用、その出力への依存、または時刻の偏差や誤りに起因する直接的または間接的な損害について、作者および発行者は一切の責任を負いません。\n\n"
         L"信頼できるタイムスタンプについては、お住まいの地域のTSA提供者にお問い合わせください。",
@@ -504,6 +506,45 @@ static ULONGLONG ParseNtpTimestamp(const unsigned char *p) {
     return unixSec * 1000ULL + (fr * 1000ULL) / 4294967296ULL;
 }
 
+// ---------------- 日志写入 ----------------
+static void WriteSyncLog(ULONGLONG ntpMs, ULONGLONG localMs, int status, ULONGLONG rtt, const wchar_t* source) {
+    EnsureConfigPath();
+    if (!g_configPath[0]) return;
+
+    wchar_t logPath[MAX_PATH];
+    wcscpy_s(logPath, g_configPath);
+    wchar_t* p = wcsrchr(logPath, L'\\');
+    if (p) *(p + 1) = 0;
+    wcscat_s(logPath, L"sync_log.txt");
+
+    // 限制 5MB
+    WIN32_FILE_ATTRIBUTE_DATA fad;
+    if (GetFileAttributesExW(logPath, GetFileExInfoStandard, &fad)) {
+        if (((ULONGLONG)fad.nFileSizeHigh << 32 | fad.nFileSizeLow) > 5 * 1024 * 1024) {
+            DeleteFileW(logPath);
+        }
+    }
+
+    FILE* f = _wfopen(logPath, L"a, ccs=UTF-8");
+    if (!f) return;
+
+    SYSTEMTIME utcSt, localSt;
+    UnixMsToUtc(localMs, &utcSt);
+    SystemTimeToTzSpecificLocalTime(NULL, &utcSt, &localSt);
+
+    long long diff = (long long)ntpMs - (long long)localMs;
+    const wchar_t* statStr = L"Unknown";
+    if (status == 0) statStr = L"Success";
+    else if (status == 1) statStr = L"SingleSource";
+    else if (status == 2) statStr = L"Conflict";
+
+    fwprintf(f, L"[%04d-%02d-%02d %02d:%02d:%02d] Source: %ls | RTT: %llu ms | Offset: %+lld ms | Status: %ls\n",
+             localSt.wYear, localSt.wMonth, localSt.wDay, localSt.wHour, localSt.wMinute, localSt.wSecond,
+             source ? source : L"-", rtt, diff, statStr);
+
+    fclose(f);
+}
+
 // ---------------- NTP ----------------
 static int NtpGetTimeMsFromHost(const char* host, ULONGLONG* out, ULONGLONG* outRtt) {
     SOCKET sock = INVALID_SOCKET;
@@ -554,16 +595,16 @@ typedef struct {
 } NtpQuery;
 
 static DWORD WINAPI NtpWorker(LPVOID param) {
-NtpQuery* q = (NtpQuery*)param;
-ULONGLONG ms = 0;
-ULONGLONG rtt = 0;
-if (NtpGetTimeMsFromHost(q->host, &ms, &rtt) == 0 && ms > 0) {
-q->timeMs = ms;
-q->rttMs  = rtt;
-InterlockedExchange(&q->ok, 1);
-}
-InterlockedExchange(&q->done, 1);
-return 0;
+    NtpQuery* q = (NtpQuery*)param;
+    ULONGLONG ms = 0;
+    ULONGLONG rtt = 0;
+    if (NtpGetTimeMsFromHost(q->host, &ms, &rtt) == 0 && ms > 0) {
+        q->timeMs = ms;
+        q->rttMs  = rtt;
+        InterlockedExchange(&q->ok, 1);
+    }
+    InterlockedExchange(&q->done, 1);
+    return 0;
 }
 
 static int QueryNtpSources(ULONGLONG* outTime, wchar_t* outSourceName, int nameCap) {
@@ -660,15 +701,15 @@ static int QueryNtpSources(ULONGLONG* outTime, wchar_t* outSourceName, int nameC
 }
 
 static DWORD WINAPI NtpThread(LPVOID param) {
-ULONGLONG ms = 0;
-wchar_t src[64] = {0};
-int status = QueryNtpSources(&ms, src, 64);
-g_ntpResult = ms;
-g_ntpStatus = status;
-wcsncpy_s(g_lastSource, 64, src, _TRUNCATE);
-InterlockedExchange(&g_ntpPending, 0);
-PostMessage(g_hwnd, WM_NTP_DONE, 0, 0);
-return 0;
+    ULONGLONG ms = 0;
+    wchar_t src[64] = {0};
+    int status = QueryNtpSources(&ms, src, 64);
+    g_ntpResult = ms;
+    g_ntpStatus = status;
+    wcsncpy_s(g_lastSource, 64, src, _TRUNCATE);
+    InterlockedExchange(&g_ntpPending, 0);
+    PostMessage(g_hwnd, WM_NTP_DONE, 0, 0);
+    return 0;
 }
 
 static void StartNtpTask(int taskType) {
@@ -814,7 +855,7 @@ static void DrawTextsWithGDI(void) {
     g.SetTextRenderingHint(TextRenderingHintAntiAlias);
     g.SetSmoothingMode(SmoothingModeAntiAlias);
 
-    // 时间（AM/PM 不显示在主时间区，挪到右下角）
+    // 时间
     {
         SYSTEMTIME st;
         GetDisplayTime(&st);
@@ -845,7 +886,7 @@ static void DrawTextsWithGDI(void) {
         g.DrawString(timeBuf, -1, &fontBig, rc, NULL, &brush);
     }
 
-    // 状态（宽度加大到 220）
+    // 状态
     {
         wchar_t status[160];
         BuildStatusW(status, 160);
@@ -856,7 +897,7 @@ static void DrawTextsWithGDI(void) {
         g.DrawString(status, -1, &fontSmall, rc, NULL, &brush);
     }
 
-    // 上次同步时间 + RTT（红绿灯左侧，右对齐）
+    // 上次同步时间 + RTT
     {
         wchar_t tailBuf[80] = {0};
 
@@ -871,7 +912,6 @@ static void DrawTextsWithGDI(void) {
                     swprintf_s(tailBuf, 80, L"%d:%02d %ls", h, g_lastSyncTime.wMinute, ampm);
                 }
             } else {
-                // 首启占位
                 swprintf_s(tailBuf, 80, L"--:--");
             }
         }
@@ -885,7 +925,6 @@ static void DrawTextsWithGDI(void) {
 
         if (tailBuf[0]) {
             Font fontTail(g_lang->fontStatus, 10, FontStyleRegular, UnitPixel);
-            // RTT > 500ms 时使用更亮的橙色 (255, 165, 0)
             Color tailColor = (g_lastRttMs > 500)
                               ? Color(255, 255, 165, 0)
                               : (g_lightTheme ? Color(255, 0, 0, 0) : Color(255, 255, 255, 255));
@@ -993,6 +1032,7 @@ static void ShowTrayMenu(void) {
 
     AppendMenuW(hSettings, MF_SEPARATOR, 0, NULL);
     AppendMenuW(hSettings, MF_STRING, IDM_HOTKEY_INFO, L->menuHotkey);
+    AppendMenuW(hSettings, MF_STRING, IDM_OPEN_LOG, L->menuOpenLog);
 
     AppendMenuW(hMenu, MF_POPUP, (UINT_PTR)hSettings, L->menuSettings);
     AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
@@ -1017,6 +1057,16 @@ static void ShowTrayMenu(void) {
         g_24Hour = !g_24Hour;
         SaveConfig();
         Render();
+    } else if (cmd == IDM_OPEN_LOG) {
+        wchar_t logPath[MAX_PATH];
+        EnsureConfigPath();
+        if (g_configPath[0]) {
+            wcscpy_s(logPath, g_configPath);
+            wchar_t* p = wcsrchr(logPath, L'\\');
+            if (p) *(p + 1) = 0;
+            wcscat_s(logPath, L"sync_log.txt");
+            ShellExecuteW(NULL, L"open", logPath, NULL, NULL, SW_SHOWNORMAL);
+        }
     } else if (cmd == IDM_DISCLAIMER) {
         MessageBoxW(g_hwnd, L->disclaimerBody, L->disclaimerTitle, MB_OK | MB_ICONINFORMATION);
     } else if (cmd == IDM_ABOUT) {
@@ -1113,221 +1163,231 @@ static int HitTestButton(int mx, int my) {
 
 // ---------------- 窗口过程 ----------------
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
-switch (msg) {
-case WM_CREATE:
-SetWindowTextW(hwnd, g_lang->wndTitle);
-RegisterHotKey(hwnd, HOTKEY_ID_TOGGLE, MOD_CONTROL | MOD_ALT | MOD_NOREPEAT, 'T');
-RegisterHotKey(hwnd, HOTKEY_ID_MODE,   MOD_CONTROL | MOD_ALT | MOD_NOREPEAT, 'M');
-RegisterHotKey(hwnd, HOTKEY_ID_RESYNC, MOD_CONTROL | MOD_ALT | MOD_NOREPEAT, 'R');
-return 0;
+    switch (msg) {
+    case WM_CREATE:
+        SetWindowTextW(hwnd, g_lang->wndTitle);
+        RegisterHotKey(hwnd, HOTKEY_ID_TOGGLE, MOD_CONTROL | MOD_ALT | MOD_NOREPEAT, 'T');
+        RegisterHotKey(hwnd, HOTKEY_ID_MODE,   MOD_CONTROL | MOD_ALT | MOD_NOREPEAT, 'M');
+        RegisterHotKey(hwnd, HOTKEY_ID_RESYNC, MOD_CONTROL | MOD_ALT | MOD_NOREPEAT, 'R');
+        return 0;
 
-case WM_HOTKEY:
-if (wp == HOTKEY_ID_TOGGLE) {
-ToggleWindowVisible();
-} else if (wp == HOTKEY_ID_MODE) {
-ToggleMode();
-} else if (wp == HOTKEY_ID_RESYNC) {
-if (g_mode == MODE_EVIDENCE) StartNtpTask(2);
-else                          StartNtpTask(0);
-}
-return 0;
+    case WM_HOTKEY:
+        if (wp == HOTKEY_ID_TOGGLE) {
+            ToggleWindowVisible();
+        } else if (wp == HOTKEY_ID_MODE) {
+            ToggleMode();
+        } else if (wp == HOTKEY_ID_RESYNC) {
+            if (g_mode == MODE_EVIDENCE) StartNtpTask(2);
+            else                          StartNtpTask(0);
+        }
+        return 0;
 
-case WM_TRAYICON:
-if (LOWORD(lp) == WM_LBUTTONUP) {
-ToggleWindowVisible();
-} else if (LOWORD(lp) == WM_RBUTTONUP) {
-ShowTrayMenu();
-}
-return 0;
+    case WM_TRAYICON:
+        if (LOWORD(lp) == WM_LBUTTONUP) {
+            ToggleWindowVisible();
+        } else if (LOWORD(lp) == WM_RBUTTONUP) {
+            ShowTrayMenu();
+        }
+        return 0;
 
-case WM_TIMER:
-if (wp == TIMER_DISPLAY) {
-Render();
-} else if (wp == TIMER_RESYNC && g_mode == MODE_EVIDENCE) {
-StartNtpTask(2);
-} else if (wp == TIMER_FAILMSG) {
-KillTimer(hwnd, TIMER_FAILMSG);
-g_showFailMsg = FALSE;
-Render();
-} else if (wp == TIMER_NORMAL_RESYNC && g_mode == MODE_NORMAL) {
-StartNtpTask(0);
-}
-return 0;
+    case WM_TIMER:
+        if (wp == TIMER_DISPLAY) {
+            Render();
+        } else if (wp == TIMER_RESYNC && g_mode == MODE_EVIDENCE) {
+            StartNtpTask(2);
+        } else if (wp == TIMER_FAILMSG) {
+            KillTimer(hwnd, TIMER_FAILMSG);
+            g_showFailMsg = FALSE;
+            Render();
+        } else if (wp == TIMER_NORMAL_RESYNC && g_mode == MODE_NORMAL) {
+            StartNtpTask(0);
+        }
+        return 0;
 
-case WM_NTP_DONE: {
-int status = g_ntpStatus;
-ULONGLONG ms = g_ntpResult;
+    case WM_NTP_DONE: {
+        int status = g_ntpStatus;
+        ULONGLONG ms = g_ntpResult;
+        ULONGLONG localMsBefore = NowMs(); // 计算偏差用
 
-if (g_ntpTask == 0) {
-if (status == 0 || status == 1) {
-g_baseTimeMs = ms;
-QueryPerformanceCounter(&g_qpcBase);
-g_normalSynced = TRUE;
-g_normalFailCount = 0;
-GetDisplayTime(&g_lastSyncTime);
-g_lastSyncValid = TRUE;
-} else {
-g_normalFailCount++;
-if (g_normalFailCount >= NORMAL_MAX_FAIL) {
-ApplyNormalLocal();
-}
-}
-g_switching = FALSE;
-g_normalSyncing = FALSE;
-} else if (g_ntpTask == 1) {
-EnterPrecisionModeFromResult(status, ms);
-if (status == 0 || status == 1) {
-GetDisplayTime(&g_lastSyncTime);
-g_lastSyncValid = TRUE;
-}
-} else if (g_ntpTask == 2) {
-if (status == 0 || status == 1) {
-g_baseTimeMs = ms;
-QueryPerformanceCounter(&g_qpcBase);
-g_ntpFailCount = 0;
-GetDisplayTime(&g_lastSyncTime);
-g_lastSyncValid = TRUE;
-KillTimer(hwnd, TIMER_RESYNC);
-SetTimer(hwnd, TIMER_RESYNC, EVIDENCE_RESYNC_MS, NULL);
-} else if (status == 2) {
-KillTimer(hwnd, TIMER_RESYNC);
-KillTimer(hwnd, TIMER_DISPLAY);
-SetTimer(hwnd, TIMER_DISPLAY, 500, NULL);
-g_mode = MODE_NORMAL;
-ApplyNormalLocal();
-g_ntpFailCount = 0;
-SetTimer(hwnd, TIMER_NORMAL_RESYNC, NORMAL_RESYNC_MS, NULL);
-g_showFailMsg = TRUE;
-KillTimer(hwnd, TIMER_FAILMSG);
-SetTimer(hwnd, TIMER_FAILMSG, 2500, NULL);
-} else {
-g_ntpFailCount++;
-if (g_ntpFailCount < 2) {
-KillTimer(hwnd, TIMER_RESYNC);
-SetTimer(hwnd, TIMER_RESYNC, 5000, NULL);
-} else {
-KillTimer(hwnd, TIMER_RESYNC);
-KillTimer(hwnd, TIMER_DISPLAY);
-SetTimer(hwnd, TIMER_DISPLAY, 500, NULL);
-g_mode = MODE_NORMAL;
-ApplyNormalLocal();
-g_ntpFailCount = 0;
-SetTimer(hwnd, TIMER_NORMAL_RESYNC, NORMAL_RESYNC_MS, NULL);
-g_showFailMsg = TRUE;
-KillTimer(hwnd, TIMER_FAILMSG);
-SetTimer(hwnd, TIMER_FAILMSG, 2500, NULL);
-}
-}
-g_switching = FALSE;
-}
+        if (g_ntpTask == 0) {
+            if (status == 0 || status == 1 || status == 2) {
+                WriteSyncLog(ms, localMsBefore, status, g_lastRttMs, g_lastSource);
+            }
+            if (status == 0 || status == 1) {
+                g_baseTimeMs = ms;
+                QueryPerformanceCounter(&g_qpcBase);
+                g_normalSynced = TRUE;
+                g_normalFailCount = 0;
+                GetDisplayTime(&g_lastSyncTime);
+                g_lastSyncValid = TRUE;
+            } else {
+                g_normalFailCount++;
+                if (g_normalFailCount >= NORMAL_MAX_FAIL) {
+                    ApplyNormalLocal();
+                }
+            }
+            g_switching = FALSE;
+            g_normalSyncing = FALSE;
+        } else if (g_ntpTask == 1) {
+            if (status == 0 || status == 1 || status == 2) {
+                WriteSyncLog(ms, localMsBefore, status, g_lastRttMs, g_lastSource);
+            }
+            EnterPrecisionModeFromResult(status, ms);
+            if (status == 0 || status == 1) {
+                GetDisplayTime(&g_lastSyncTime);
+                g_lastSyncValid = TRUE;
+            }
+        } else if (g_ntpTask == 2) {
+            if (status == 0 || status == 1 || status == 2) {
+                WriteSyncLog(ms, localMsBefore, status, g_lastRttMs, g_lastSource);
+            }
+            if (status == 0 || status == 1) {
+                g_baseTimeMs = ms;
+                QueryPerformanceCounter(&g_qpcBase);
+                g_ntpFailCount = 0;
+                GetDisplayTime(&g_lastSyncTime);
+                g_lastSyncValid = TRUE;
+                KillTimer(hwnd, TIMER_RESYNC);
+                SetTimer(hwnd, TIMER_RESYNC, EVIDENCE_RESYNC_MS, NULL);
+            } else if (status == 2) {
+                KillTimer(hwnd, TIMER_RESYNC);
+                KillTimer(hwnd, TIMER_DISPLAY);
+                SetTimer(hwnd, TIMER_DISPLAY, 500, NULL);
+                g_mode = MODE_NORMAL;
+                ApplyNormalLocal();
+                g_ntpFailCount = 0;
+                SetTimer(hwnd, TIMER_NORMAL_RESYNC, NORMAL_RESYNC_MS, NULL);
+                g_showFailMsg = TRUE;
+                KillTimer(hwnd, TIMER_FAILMSG);
+                SetTimer(hwnd, TIMER_FAILMSG, 2500, NULL);
+            } else {
+                g_ntpFailCount++;
+                if (g_ntpFailCount < 2) {
+                    KillTimer(hwnd, TIMER_RESYNC);
+                    SetTimer(hwnd, TIMER_RESYNC, 5000, NULL);
+                } else {
+                    KillTimer(hwnd, TIMER_RESYNC);
+                    KillTimer(hwnd, TIMER_DISPLAY);
+                    SetTimer(hwnd, TIMER_DISPLAY, 500, NULL);
+                    g_mode = MODE_NORMAL;
+                    ApplyNormalLocal();
+                    g_ntpFailCount = 0;
+                    SetTimer(hwnd, TIMER_NORMAL_RESYNC, NORMAL_RESYNC_MS, NULL);
+                    g_showFailMsg = TRUE;
+                    KillTimer(hwnd, TIMER_FAILMSG);
+                    SetTimer(hwnd, TIMER_FAILMSG, 2500, NULL);
+                }
+            }
+            g_switching = FALSE;
+        }
 
-if (g_pendingResync) {
-g_pendingResync = FALSE;
-if (g_mode == MODE_NORMAL) {
-StartNtpTask(0);
-} else {
-g_switching = TRUE;
-StartNtpTask(2);
-}
-}
-Render();
-return 0;
-}
+        if (g_pendingResync) {
+            g_pendingResync = FALSE;
+            if (g_mode == MODE_NORMAL) {
+                StartNtpTask(0);
+            } else {
+                g_switching = TRUE;
+                StartNtpTask(2);
+            }
+        }
+        Render();
+        return 0;
+    }
 
-case WM_MOUSEMOVE: {
-int mx = (int)(short)LOWORD(lp);
-int my = (int)(short)HIWORD(lp);
+    case WM_MOUSEMOVE: {
+        int mx = (int)(short)LOWORD(lp);
+        int my = (int)(short)HIWORD(lp);
 
-int newHover = HitTestButton(mx, my);
-if (newHover != g_hoverBtn) {
-g_hoverBtn = newHover;
-Render();
-}
+        int newHover = HitTestButton(mx, my);
+        if (newHover != g_hoverBtn) {
+            g_hoverBtn = newHover;
+            Render();
+        }
 
-if (g_dragging) {
-POINT p;
-GetCursorPos(&p);
-g_winX += (p.x - g_dragAnchor.x);
-g_winY += (p.y - g_dragAnchor.y);
-g_dragAnchor = p;
-Render();
-}
+        if (g_dragging) {
+            POINT p;
+            GetCursorPos(&p);
+            g_winX += (p.x - g_dragAnchor.x);
+            g_winY += (p.y - g_dragAnchor.y);
+            g_dragAnchor = p;
+            Render();
+        }
 
-TRACKMOUSEEVENT tme = {0};
-tme.cbSize = sizeof(tme);
-tme.dwFlags = TME_LEAVE;
-tme.hwndTrack = hwnd;
-TrackMouseEvent(&tme);
-return 0;
-}
+        TRACKMOUSEEVENT tme = {0};
+        tme.cbSize = sizeof(tme);
+        tme.dwFlags = TME_LEAVE;
+        tme.hwndTrack = hwnd;
+        TrackMouseEvent(&tme);
+        return 0;
+    }
 
-case WM_MOUSELEAVE:
-if (g_hoverBtn != 0) {
-g_hoverBtn = 0;
-Render();
-}
-return 0;
+    case WM_MOUSELEAVE:
+        if (g_hoverBtn != 0) {
+            g_hoverBtn = 0;
+            Render();
+        }
+        return 0;
 
-case WM_LBUTTONDOWN: {
-int mx = (int)(short)LOWORD(lp);
-int my = (int)(short)HIWORD(lp);
-int btn = HitTestButton(mx, my);
+    case WM_LBUTTONDOWN: {
+        int mx = (int)(short)LOWORD(lp);
+        int my = (int)(short)HIWORD(lp);
+        int btn = HitTestButton(mx, my);
 
-if (btn == 1) {
-DestroyWindow(hwnd);
-return 0;
-} else if (btn == 2) {
-g_windowVisible = FALSE;
-ShowWindow(hwnd, SW_HIDE);
-return 0;
-} else if (btn == 3) {
-ToggleMode();
-return 0;
-}
+        if (btn == 1) {
+            DestroyWindow(hwnd);
+            return 0;
+        } else if (btn == 2) {
+            g_windowVisible = FALSE;
+            ShowWindow(hwnd, SW_HIDE);
+            return 0;
+        } else if (btn == 3) {
+            ToggleMode();
+            return 0;
+        }
 
-if (GetMessageTime() - (LONG)g_lastClick < GetDoubleClickTime()) {
-g_lastClick = 0;
-ToggleMode();
-} else {
-g_lastClick = GetMessageTime();
-g_dragging = TRUE;
-GetCursorPos(&g_dragAnchor);
-SetCapture(hwnd);
-}
-return 0;
-}
+        if (GetMessageTime() - (LONG)g_lastClick < GetDoubleClickTime()) {
+            g_lastClick = 0;
+            ToggleMode();
+        } else {
+            g_lastClick = GetMessageTime();
+            g_dragging = TRUE;
+            GetCursorPos(&g_dragAnchor);
+            SetCapture(hwnd);
+        }
+        return 0;
+    }
 
-case WM_LBUTTONUP:
-if (g_dragging) {
-g_dragging = FALSE;
-ReleaseCapture();
-SaveConfig();
-}
-return 0;
+    case WM_LBUTTONUP:
+        if (g_dragging) {
+            g_dragging = FALSE;
+            ReleaseCapture();
+            SaveConfig();
+        }
+        return 0;
 
-case WM_RBUTTONUP:
-ShowTrayMenu();
-return 0;
+    case WM_RBUTTONUP:
+        ShowTrayMenu();
+        return 0;
 
-case WM_SETTINGCHANGE:
-g_lightTheme = IsSystemLightTheme();
-Render();
-return 0;
+    case WM_SETTINGCHANGE:
+        g_lightTheme = IsSystemLightTheme();
+        Render();
+        return 0;
 
-case WM_DESTROY:
-UnregisterHotKey(hwnd, HOTKEY_ID_TOGGLE);
-UnregisterHotKey(hwnd, HOTKEY_ID_MODE);
-UnregisterHotKey(hwnd, HOTKEY_ID_RESYNC);
-KillTimer(hwnd, TIMER_DISPLAY);
-KillTimer(hwnd, TIMER_RESYNC);
-KillTimer(hwnd, TIMER_FAILMSG);
-KillTimer(hwnd, TIMER_NORMAL_RESYNC);
-SaveConfig();
-RemoveTrayIcon();
-PostQuitMessage(0);
-return 0;
-}
-return DefWindowProcW(hwnd, msg, wp, lp);
+    case WM_DESTROY:
+        UnregisterHotKey(hwnd, HOTKEY_ID_TOGGLE);
+        UnregisterHotKey(hwnd, HOTKEY_ID_MODE);
+        UnregisterHotKey(hwnd, HOTKEY_ID_RESYNC);
+        KillTimer(hwnd, TIMER_DISPLAY);
+        KillTimer(hwnd, TIMER_RESYNC);
+        KillTimer(hwnd, TIMER_FAILMSG);
+        KillTimer(hwnd, TIMER_NORMAL_RESYNC);
+        SaveConfig();
+        RemoveTrayIcon();
+        PostQuitMessage(0);
+        return 0;
+    }
+    return DefWindowProcW(hwnd, msg, wp, lp);
 }
 
 // ---------------- 初始化 / 清理 ----------------
@@ -1374,93 +1434,93 @@ static void EnableDpiAwareness(void) {
 
 // ---------------- WinMain ----------------
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR cmd, int show) {
-(void)hPrev; (void)cmd; (void)show;
+    (void)hPrev; (void)cmd; (void)show;
 
-EnableDpiAwareness();
+    EnableDpiAwareness();
 
-HANDLE hMutex = CreateMutexW(NULL, TRUE, L"PrecisionClock_SingleInstance_Mutex");
-if (hMutex && GetLastError() == ERROR_ALREADY_EXISTS) {
-HWND hPrevWnd = FindWindowW(L"PrecisionClockWnd", NULL);
-if (hPrevWnd) {
-ShowWindow(hPrevWnd, SW_SHOWNOACTIVATE);
-SetForegroundWindow(hPrevWnd);
-}
-CloseHandle(hMutex);
-return 0;
-}
+    HANDLE hMutex = CreateMutexW(NULL, TRUE, L"PrecisionClock_SingleInstance_Mutex");
+    if (hMutex && GetLastError() == ERROR_ALREADY_EXISTS) {
+        HWND hPrevWnd = FindWindowW(L"PrecisionClockWnd", NULL);
+        if (hPrevWnd) {
+            ShowWindow(hPrevWnd, SW_SHOWNOACTIVATE);
+            SetForegroundWindow(hPrevWnd);
+        }
+        CloseHandle(hMutex);
+        return 0;
+    }
 
-LoadConfig();
-g_lang = CurrentLang();
-g_lightTheme = IsSystemLightTheme();
-ComputeDpiScale();
+    LoadConfig();
+    g_lang = CurrentLang();
+    g_lightTheme = IsSystemLightTheme();
+    ComputeDpiScale();
 
-GdiplusStartupInput gsi;
-if (GdiplusStartup(&g_gdiplusToken, &gsi, NULL) != Ok) return 1;
+    GdiplusStartupInput gsi;
+    if (GdiplusStartup(&g_gdiplusToken, &gsi, NULL) != Ok) return 1;
 
-WSADATA wsa;
-if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
-GdiplusShutdown(g_gdiplusToken);
-return 1;
-}
+    WSADATA wsa;
+    if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+        GdiplusShutdown(g_gdiplusToken);
+        return 1;
+    }
 
-QueryPerformanceFrequency(&g_qpcFreq);
-QueryPerformanceCounter(&g_qpcBase);
+    QueryPerformanceFrequency(&g_qpcFreq);
+    QueryPerformanceCounter(&g_qpcBase);
 
-int maxX = GetSystemMetrics(SM_CXSCREEN) - g_physW;
-int maxY = GetSystemMetrics(SM_CYSCREEN) - g_physH;
-if (g_winX < 0 || g_winX > maxX || g_winY < 0 || g_winY > maxY) {
-g_winX = GetSystemMetrics(SM_CXSCREEN) - g_physW - WINDOW_MARGIN;
-g_winY = GetSystemMetrics(SM_CYSCREEN) - g_physH - WINDOW_MARGIN - 60;
-}
+    int maxX = GetSystemMetrics(SM_CXSCREEN) - g_physW;
+    int maxY = GetSystemMetrics(SM_CYSCREEN) - g_physH;
+    if (g_winX < 0 || g_winX > maxX || g_winY < 0 || g_winY > maxY) {
+        g_winX = GetSystemMetrics(SM_CXSCREEN) - g_physW - WINDOW_MARGIN;
+        g_winY = GetSystemMetrics(SM_CYSCREEN) - g_physH - WINDOW_MARGIN - 60;
+    }
 
-WNDCLASSEXW wc = {0};
-wc.cbSize        = sizeof(wc);
-wc.lpfnWndProc   = WndProc;
-wc.hInstance     = hInst;
-wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
-wc.hbrBackground = NULL;
-wc.lpszClassName = L"PrecisionClockWnd";
-RegisterClassExW(&wc);
+    WNDCLASSEXW wc = {0};
+    wc.cbSize        = sizeof(wc);
+    wc.lpfnWndProc   = WndProc;
+    wc.hInstance     = hInst;
+    wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
+    wc.hbrBackground = NULL;
+    wc.lpszClassName = L"PrecisionClockWnd";
+    RegisterClassExW(&wc);
 
-g_hwnd = CreateWindowExW(
-        WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
-        L"PrecisionClockWnd", g_lang->wndTitle,
-        WS_POPUP,
-        g_winX, g_winY, g_physW, g_physH,
-        NULL, NULL, hInst, NULL);
+    g_hwnd = CreateWindowExW(
+            WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
+            L"PrecisionClockWnd", g_lang->wndTitle,
+            WS_POPUP,
+            g_winX, g_winY, g_physW, g_physH,
+            NULL, NULL, hInst, NULL);
 
-if (!g_hwnd) {
-WSACleanup();
-GdiplusShutdown(g_gdiplusToken);
-return 1;
-}
+    if (!g_hwnd) {
+        WSACleanup();
+        GdiplusShutdown(g_gdiplusToken);
+        return 1;
+    }
 
-if (!InitGdiplusResources()) {
-DestroyWindow(g_hwnd);
-WSACleanup();
-GdiplusShutdown(g_gdiplusToken);
-return 1;
-}
+    if (!InitGdiplusResources()) {
+        DestroyWindow(g_hwnd);
+        WSACleanup();
+        GdiplusShutdown(g_gdiplusToken);
+        return 1;
+    }
 
-InitTrayIcon(hInst);
-UpdateTrayTip();
+    InitTrayIcon(hInst);
+    UpdateTrayTip();
 
-ApplyNormalLocal();
-Render();
-ShowWindow(g_hwnd, SW_SHOWNOACTIVATE);
+    ApplyNormalLocal();
+    Render();
+    ShowWindow(g_hwnd, SW_SHOWNOACTIVATE);
 
-SetTimer(g_hwnd, TIMER_DISPLAY, 500, NULL);
-SetTimer(g_hwnd, TIMER_NORMAL_RESYNC, NORMAL_RESYNC_MS, NULL);
-StartNtpTask(0);
+    SetTimer(g_hwnd, TIMER_DISPLAY, 500, NULL);
+    SetTimer(g_hwnd, TIMER_NORMAL_RESYNC, NORMAL_RESYNC_MS, NULL);
+    StartNtpTask(0);
 
-MSG msg;
-while (GetMessageW(&msg, NULL, 0, 0) > 0) {
-TranslateMessage(&msg);
-DispatchMessageW(&msg);
-}
+    MSG msg;
+    while (GetMessageW(&msg, NULL, 0, 0) > 0) {
+        TranslateMessage(&msg);
+        DispatchMessageW(&msg);
+    }
 
-CleanupGdiplusResources();
-WSACleanup();
-GdiplusShutdown(g_gdiplusToken);
-return (int)msg.wParam;
+    CleanupGdiplusResources();
+    WSACleanup();
+    GdiplusShutdown(g_gdiplusToken);
+    return (int)msg.wParam;
 }

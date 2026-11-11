@@ -1,0 +1,16 @@
+﻿[package]
+name = "timezone-cli"
+version = "0.4.1"
+edition = "2021"
+
+[dependencies]
+chrono = "0.4"
+chrono-tz = "0.9"
+arboard = "3.4"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

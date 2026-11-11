@@ -1,0 +1,25 @@
+1 ICON "64x64.ico"
+
+1 VERSIONINFO
+FILEVERSION 0,4,1,0
+PRODUCTVERSION 0,4,1,0
+FILEOS 0x40004
+FILETYPE 0x1
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "FileDescription", "PrecisionClock-Timezone CLI"
+            VALUE "ProductName", "PrecisionClock-Timezone"
+            VALUE "FileVersion", "0.4.1"
+            VALUE "ProductVersion", "0.4.1"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Colligatio. License: GPL-3.0."
+            VALUE "OriginalFilename", "timezone-cli.exe"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
